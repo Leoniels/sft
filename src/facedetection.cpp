@@ -68,12 +68,12 @@ int main(int argc, char** argv){
    VideoCapture capture;
    String camera_input = parser.get<String>("camera");
 	String video_input = parser.get<String>("video");
-   if (!video_input.empty()){				// Open default system camera
+   if (!video_input.empty()){				// Open video file
       const String name = video_input;
       capture.open(name);
 	}else if (camera_input.size() == 1)	// Open specific camera
       capture.open(stoi(camera_input));
-   else											// Open video file
+   else											// Open default system camera
       capture.open(0);
 
    if (!capture.isOpened()){
@@ -82,11 +82,10 @@ int main(int argc, char** argv){
    }
 
    // Display input video stream info
-   int srcFrameWidth, srcFrameHeight, srcfps, codec;
+   int srcFrameWidth, srcFrameHeight, srcfps;
    srcFrameWidth = static_cast<int>(capture.get(CAP_PROP_FRAME_WIDTH));
    srcFrameHeight = static_cast<int>(capture.get(CAP_PROP_FRAME_HEIGHT));
    srcfps = static_cast<int>(capture.get(CAP_PROP_FPS));
-   codec = VideoWriter::fourcc('X', 'V', 'I', 'D');	// mp4 encoding
    cout << "Frame width: " << srcFrameWidth << endl;
    cout << "  \"  height: " << srcFrameHeight << endl;
    cout << "Capturing FPS: " << srcfps << endl;
@@ -98,6 +97,7 @@ int main(int argc, char** argv){
    if (!dest.empty()){
 		writeVideo = true;
 		const string name = dest + ".avi";
+   	int codec = VideoWriter::fourcc('X', 'V', 'I', 'D');	// mp4 encoding
 		outputVideo.open(name, codec, srcfps, Size(srcFrameWidth, srcFrameHeight), true);
 		if (!outputVideo.isOpened()){
 			cout << "ERROR:VIDEO::FAILURE_OPENING_VIDEO_STREAM_OUTPUT" << endl;
@@ -108,7 +108,7 @@ int main(int argc, char** argv){
    Mat frame;
    size_t nFrames = 0;
    int64 t0 = cv::getTickCount();
-	while (capture.read(frame)){
+	while (capture.read(frame) && !(waitKey(1) == 27/*ESC*/)){
 		if (frame.empty()){
 			cerr << "ERROR::FRAME::EMPTY_FRAME_READED" << endl;
 			return 1;
@@ -132,10 +132,7 @@ int main(int argc, char** argv){
 		if (writeVideo)
       	outputVideo << frame;
 			
-      imshow("Frame", frame);
-       
-      if (waitKey(1) == 27/*ESC*/)
-          break;
+      imshow("OpenCV Facedetection", frame);
    }
    
    std::cout << "Number of captured frames: " << nFrames << endl;
