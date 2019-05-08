@@ -108,6 +108,7 @@ int main(int argc, char** argv){
    Mat frame;
    size_t nFrames = 0;
    int64 t0 = cv::getTickCount();
+	int64 processingTime = 0;
 	while (capture.read(frame) && !(waitKey(1) == 27/*ESC*/)){
 		if (frame.empty()){
 			cerr << "ERROR::FRAME::EMPTY_FRAME_READED" << endl;
@@ -123,16 +124,20 @@ int main(int argc, char** argv){
               cv::format("%9.1f", (double)getTickFrequency() * N / (t1 - t0))
               << "    Average time per frame: " << 
               cv::format("%9.2f ms", (double)(t1 - t0) * 1000.0f / (N * getTickFrequency()))
-              << std::endl;
+              << "    Processing time: " <<
+				  cv::format("%9.2f ms", (double)(processingTime) * 1000.0f / getTickFrequency())
+				  << std::endl;
          t0 = t1;
 		}
  
+		int64 tp0 = getTickCount();
 		detectAndDisplay(frame, searchEyes);
+		processingTime = getTickCount() - tp0;
 
 		if (writeVideo)
       	outputVideo << frame;
-			
-      imshow("OpenCV Facedetection", frame);
+		else
+      	imshow("OpenCV Facedetection", frame);
    }
    
    std::cout << "Number of captured frames: " << nFrames << endl;
@@ -145,7 +150,7 @@ void detectAndDisplay(Mat frame, bool searchEyes){
 	equalizeHist(grayFrame, grayFrame);
 
 	vector<Rect> faces;
-	faceCascade.detectMultiScale(grayFrame, faces);
+	faceCascade.detectMultiScale(grayFrame, faces, 1.25, 2, 0/*| CASCADE_DO_ROUGH_SEARCH*/, Size(30, 30));
 
 	for ( size_t i = 0; i < faces.size(); i++){
 		rectangle(frame, faces[i], Scalar(255, 0, 0));
@@ -153,9 +158,9 @@ void detectAndDisplay(Mat frame, bool searchEyes){
 		if (searchEyes){
 			Rect ROI(Point(faces[i].x, faces[i].y), Size(faces[i].width, faces[i].height/2));
 			rectangle(frame, ROI, Scalar(0, 0, 255));
-			Mat frameROI = grayFrame(ROI);
+			Mat grayFrameROI = grayFrame(ROI);
 			vector<Rect> eyes;
-			eyesCascade.detectMultiScale(frameROI, eyes);
+			eyesCascade.detectMultiScale(grayFrameROI, eyes);
 			for (size_t j = 0; j < eyes.size(); j++){
 				Point p1(faces[i].x + eyes[j].x, faces[i].y + eyes[j].y);
 				Point p2(faces[i].x + eyes[j].x + eyes[j].width, faces[i].y + eyes[j].y + eyes[j].height);
