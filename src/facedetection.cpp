@@ -16,15 +16,16 @@
 using namespace cv;
 using namespace std;
 
-void detectAndDisplay(Mat frame, bool searchEyes);
+void detectAndDisplay(Mat frame, bool searchEyes, bool gray);
 
 const String keys =
-   "{help h|| Print help message }"
-   "{camera c|0| Camera device number as video stream input }"
-	"{video v|| Video file as video stream input }"
+   "{help h|| Print help message}"
+   "{camera c|0| Camera device number as video stream input}"
+	"{video v|| Video file as video stream input}"
    "{@face_cascade f|/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml|.xml file}"
-   "{eyes_cascade e|| .xml eyes cascade file }"
-   "{out o|| Write a video file -o <name>.avi}";
+   "{eyes_cascade e|| .xml eyes cascade file}"
+   "{out o|| Write a video file -o <name>.avi}"
+	"{gray g|| Output video in grayscale}";
 const String about =
 	"Easy facedetection v1\n"
    "This program shows a video stream (camera or video file) and shows the faces detected on it.";
@@ -90,6 +91,11 @@ int main(int argc, char** argv){
    cout << "  \"  height: " << srcFrameHeight << endl;
    cout << "Capturing FPS: " << srcfps << endl;
 
+	// Color output format
+	bool gray = false;
+	if (parser.has("gray"))
+		gray = true;
+
    // Open video output stream
    String dest = parser.get<String>("out");
    bool writeVideo = false;
@@ -129,9 +135,9 @@ int main(int argc, char** argv){
 				  << std::endl;
          t0 = t1;
 		}
- 
+	
 		int64 tp0 = getTickCount();
-		detectAndDisplay(frame, searchEyes);
+		detectAndDisplay(frame, searchEyes, gray);
 		processingTime = getTickCount() - tp0;
 
 		if (writeVideo)
@@ -144,23 +150,27 @@ int main(int argc, char** argv){
    return nFrames > 0 ? 0 : 1;
 }
 
-void detectAndDisplay(Mat frame, bool searchEyes){
+void detectAndDisplay(Mat frame, bool searchEyes, bool gray){
 	Mat grayFrame;
 	cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
 	equalizeHist(grayFrame, grayFrame);
 
-	vector<Rect> faces;
-	faceCascade.detectMultiScale(grayFrame, faces, 1.25, 2, 0/*| CASCADE_DO_ROUGH_SEARCH*/, Size(30, 30));
+	if (gray)
+		cvtColor(grayFrame, frame, COLOR_GRAY2BGR);
 
-	for ( size_t i = 0; i < faces.size(); i++){
+	vector<Rect> faces;
+	faceCascade.detectMultiScale(grayFrame, faces, 1.25, 2, 0, Size(100, 150));//, Size(200, 300));
+
+	for (size_t i = 0; i < faces.size(); i++){
 		rectangle(frame, faces[i], Scalar(255, 0, 0));
 
 		if (searchEyes){
-			Rect ROI(Point(faces[i].x, faces[i].y), Size(faces[i].width, faces[i].height/2));
+			Rect ROI(Point(faces[i].x, faces[i].y), Size(faces[i].width, faces[i].height/1.7));
 			rectangle(frame, ROI, Scalar(0, 0, 255));
-			Mat grayFrameROI = grayFrame(ROI);
+			Mat frameROI = grayFrame(ROI);
 			vector<Rect> eyes;
-			eyesCascade.detectMultiScale(grayFrameROI, eyes);
+			eyesCascade.detectMultiScale(frameROI, eyes, 1.1, 2, 0, Size(20, 20), Size(50, 50));
+
 			for (size_t j = 0; j < eyes.size(); j++){
 				Point p1(faces[i].x + eyes[j].x, faces[i].y + eyes[j].y);
 				Point p2(faces[i].x + eyes[j].x + eyes[j].width, faces[i].y + eyes[j].y + eyes[j].height);
