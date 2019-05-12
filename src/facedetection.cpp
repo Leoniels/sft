@@ -159,7 +159,7 @@ void detectAndDisplay(Mat frame, bool searchEyes, bool gray){
 		cvtColor(grayFrame, frame, COLOR_GRAY2BGR);
 
 	vector<Rect> faces;
-	faceCascade.detectMultiScale(grayFrame, faces, 1.25, 2, 0, Size(100, 150));//, Size(200, 300));
+	faceCascade.detectMultiScale(grayFrame, faces, 1.25, 2, 0, Size(100, 150), Size(300, 450));
 
 	for (size_t i = 0; i < faces.size(); i++){
 		rectangle(frame, faces[i], Scalar(255, 0, 0));
@@ -169,7 +169,7 @@ void detectAndDisplay(Mat frame, bool searchEyes, bool gray){
 			rectangle(frame, ROI, Scalar(0, 0, 255));
 			Mat frameROI = grayFrame(ROI);
 			vector<Rect> eyes;
-			eyesCascade.detectMultiScale(frameROI, eyes, 1.1, 2, 0, Size(20, 20), Size(50, 50));
+			eyesCascade.detectMultiScale(frameROI, eyes, 1.25, 2, 0, Size(25, 20), Size(70, 50));
 
 			for (size_t j = 0; j < eyes.size(); j++){
 				Point p1(faces[i].x + eyes[j].x, faces[i].y + eyes[j].y);
