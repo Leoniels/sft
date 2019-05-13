@@ -1,6 +1,7 @@
 /*
- * Program that reads an input video (Camera 0 as default) and writes a video from that source with
- * no compression.
+ * This program shows a video stream (camera or video file) and shows the faces detected on it.
+ *
+ * Author: Leonardo Niels Pardi
  */
 
 #include <opencv2/core.hpp>
@@ -16,6 +17,7 @@
 using namespace cv;
 using namespace std;
 
+// Search for faces and/or eyes and draw their location
 void detectAndDisplay(Mat frame, bool searchEyes, bool gray);
 
 const String keys =
@@ -111,16 +113,19 @@ int main(int argc, char** argv){
 		}
 	}
 
-   Mat frame;
-   size_t nFrames = 0;
-   int64 t0 = cv::getTickCount();
-	int64 processingTime = 0;
+   Mat frame;	// Frame to read from video source and to draw in
+   size_t nFrames = 0;	// Number of frames readed on every iteration.
+   int64 t0 = cv::getTickCount();	// Number of cpu ticks before start looping
+	int64 processingTime = 0;	// Proccesing time used in detecting faces and eyes
+	// While the video source has frames to be readed and the user don't hit esc
 	while (capture.read(frame) && !(waitKey(1) == 27/*ESC*/)){
+		// Check frame integrity
 		if (frame.empty()){
 			cerr << "ERROR::FRAME::EMPTY_FRAME_READED" << endl;
 			return 1;
 		}
 
+		// Output execution stauts with time measurments
 		nFrames++;
 		if (nFrames % 30 == 0){
          const int N = 30;
@@ -136,12 +141,15 @@ int main(int argc, char** argv){
          t0 = t1;
 		}
 	
+		// Measure time used in detecting faces and eyes
 		int64 tp0 = getTickCount();
 		detectAndDisplay(frame, searchEyes, gray);
 		processingTime = getTickCount() - tp0;
 
+		// Write frame on video output
 		if (writeVideo)
       	outputVideo << frame;
+		// Show frame on window in realtime
 		else
       	imshow("OpenCV Facedetection", frame);
    }
@@ -150,28 +158,33 @@ int main(int argc, char** argv){
    return nFrames > 0 ? 0 : 1;
 }
 
+// Search for faces and/or eyes and draw their location
 void detectAndDisplay(Mat frame, bool searchEyes, bool gray){
+	// Get gray frame from the colored frame source
 	Mat grayFrame;
 	cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
 	equalizeHist(grayFrame, grayFrame);
 
+	// Set the output frame as gray too
 	if (gray)
 		cvtColor(grayFrame, frame, COLOR_GRAY2BGR);
 
+	// Detect faces on the frame and draw their location with a blue rectangle
 	vector<Rect> faces;
 	faceCascade.detectMultiScale(grayFrame, faces, 1.25, 2, 0, Size(100, 150), Size(300, 450));
-
 	for (size_t i = 0; i < faces.size(); i++){
 		rectangle(frame, faces[i], Scalar(255, 0, 0));
 
+		// Use a 3/4 frame size as Region Of Interest to search for eyes 
 		if (searchEyes){
 			Rect ROI(Point(faces[i].x, faces[i].y), Size(faces[i].width, faces[i].height/1.7));
 			rectangle(frame, ROI, Scalar(0, 0, 255));
 			Mat frameROI = grayFrame(ROI);
+
 			vector<Rect> eyes;
 			eyesCascade.detectMultiScale(frameROI, eyes, 1.25, 2, 0, Size(25, 20), Size(70, 50));
-
 			for (size_t j = 0; j < eyes.size(); j++){
+				// Use the ROI Mat/frame as reference for location and dimension
 				Point p1(faces[i].x + eyes[j].x, faces[i].y + eyes[j].y);
 				Point p2(faces[i].x + eyes[j].x + eyes[j].width, faces[i].y + eyes[j].y + eyes[j].height);
 				rectangle(frame, p1, p2, Scalar(0, 255, 0));
