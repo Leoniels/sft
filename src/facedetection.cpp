@@ -18,14 +18,15 @@ using namespace cv;
 using namespace std;
 
 // Search for faces and/or eyes and draw their location
-void detectAndDisplay(Mat frame, bool searchEyes, bool gray);
+void detectAndDisplay(Mat frame, bool searchNose, bool gray);
+Ptr<CLAHE> clahe = createCLAHE();
 
 const String keys =
    "{help h|| Print help message}"
    "{camera c|0| Camera device number as video stream input}"
 	"{video v|| Video file as video stream input}"
    "{@face_cascade f|/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml|.xml file}"
-   "{eyes_cascade e|| .xml eyes cascade file}"
+   "{nose_cascade n|| .xml nose cascade file}"
    "{out o|| Write a video file -o <name>.avi}"
 	"{gray g|| Output video in grayscale}";
 const String about =
@@ -33,7 +34,7 @@ const String about =
    "This program shows a video stream (camera or video file) and shows the faces detected on it.";
 
 CascadeClassifier faceCascade;
-CascadeClassifier eyesCascade;
+CascadeClassifier noseCascade;
 
 int main(int argc, char** argv){
    CommandLineParser parser(argc, argv, keys);
@@ -57,12 +58,12 @@ int main(int argc, char** argv){
 		return 1;
 	}
 
-	bool searchEyes = false;
-	String eyes_cascade_name = parser.get<String>("eyes_cascade");
-	if (!eyes_cascade_name.empty()){
-	searchEyes = true;
-	if (!eyesCascade.load(eyes_cascade_name)){
-			cerr << "ERROR::CASCADE::FAILURE_LOADING_EYES_CASCADE_FILE" << endl;
+	bool searchNose = false;
+	String nose_cascade_name = parser.get<String>("nose_cascade");
+	if (!nose_cascade_name.empty()){
+	searchNose = true;
+	if (!noseCascade.load(nose_cascade_name)){
+			cerr << "ERROR::CASCADE::FAILURE_LOADING_NOSE_CASCADE_FILE" << endl;
 			return 1;
       }
 	}
@@ -143,15 +144,14 @@ int main(int argc, char** argv){
 	
 		// Measure time used in detecting faces and eyes
 		int64 tp0 = getTickCount();
-		detectAndDisplay(frame, searchEyes, gray);
+		detectAndDisplay(frame, searchNose, gray);
 		processingTime = getTickCount() - tp0;
 
 		// Write frame on video output
 		if (writeVideo)
       	outputVideo << frame;
 		// Show frame on window in realtime
-		else
-      	imshow("OpenCV Facedetection", frame);
+      imshow("OpenCV Facedetection", frame);
    }
    
    std::cout << "Number of captured frames: " << nFrames << endl;
@@ -159,11 +159,12 @@ int main(int argc, char** argv){
 }
 
 // Search for faces and/or eyes and draw their location
-void detectAndDisplay(Mat frame, bool searchEyes, bool gray){
+void detectAndDisplay(Mat frame, bool searchNose, bool gray){
 	// Get gray frame from the colored frame source
 	Mat grayFrame;
 	cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
-	equalizeHist(grayFrame, grayFrame);
+	//equalizeHist(grayFrame, grayFrame);
+	clahe->apply(grayFrame, grayFrame);
 
 	// Set the output frame as gray too
 	if (gray)
@@ -176,17 +177,17 @@ void detectAndDisplay(Mat frame, bool searchEyes, bool gray){
 		rectangle(frame, faces[i], Scalar(255, 0, 0));
 
 		// Use a 3/4 frame size as Region Of Interest to search for eyes 
-		if (searchEyes){
-			Rect ROI(Point(faces[i].x, faces[i].y), Size(faces[i].width, faces[i].height/1.7));
+		if (searchNose){
+			Rect ROI(Point(faces[i].x+faces[i].width*0.2, faces[i].y+faces[i].height*0.35), Size(faces[i].width*0.6, faces[i].height*0.5/*1.7*/));
 			rectangle(frame, ROI, Scalar(0, 0, 255));
 			Mat frameROI = grayFrame(ROI);
 
-			vector<Rect> eyes;
-			eyesCascade.detectMultiScale(frameROI, eyes, 1.25, 2, 0, Size(25, 20), Size(70, 50));
-			for (size_t j = 0; j < eyes.size(); j++){
+			vector<Rect> noses;
+			noseCascade.detectMultiScale(frameROI, noses, 1.25, 2, 0, Size(35, 30), Size(90, 80));//Size(25, 20), Size(70, 50));
+			for (size_t j = 0; j < noses.size(); j++){
 				// Use the ROI Mat/frame as reference for location and dimension
-				Point p1(faces[i].x + eyes[j].x, faces[i].y + eyes[j].y);
-				Point p2(faces[i].x + eyes[j].x + eyes[j].width, faces[i].y + eyes[j].y + eyes[j].height);
+				Point p1(/*faces[i].x +*/ ROI.x + noses[j].x, /*faces[i].y +*/ ROI.y + noses[j].y);
+				Point p2(/*faces[i].x +*/ ROI.x + noses[j].x + noses[j].width, /*faces[i].y +*/ ROI.y + noses[j].y + noses[j].height);
 				rectangle(frame, p1, p2, Scalar(0, 255, 0));
 			}// for
 		}// if
