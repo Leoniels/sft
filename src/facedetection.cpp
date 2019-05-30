@@ -22,36 +22,36 @@ void detectAndDisplay(Mat frame, bool searchNose, bool gray);
 Ptr<CLAHE> clahe = createCLAHE();
 
 const String keys =
-   "{help h|| Print help message}"
-   "{camera c|0| Camera device number as video stream input}"
+	"{help h|| Print help message}"
+	"{camera c|0| Camera device number as video stream input}"
 	"{video v|| Video file as video stream input}"
-   "{@face_cascade f|/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml|.xml file}"
-   "{nose_cascade n|| .xml nose cascade file}"
-   "{out o|| Write a video file -o <name>.avi}"
+	"{@face_cascade f|/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml|.xml file}"
+	"{nose_cascade n|| .xml nose cascade file}"
+	"{out o|| Write a video file -o <name>.avi}"
 	"{gray g|| Output video in grayscale}";
 const String about =
 	"Easy facedetection v1\n"
-   "This program shows a video stream (camera or video file) and shows the faces detected on it.";
+	"This program shows a video stream (camera or video file) and shows the faces detected on it.";
 
 CascadeClassifier faceCascade;
 CascadeClassifier noseCascade;
 
 int main(int argc, char** argv){
-   CommandLineParser parser(argc, argv, keys);
-   parser.about(about);
+	CommandLineParser parser(argc, argv, keys);
+	parser.about(about);
 
-   // Check arguments
-   if (!parser.check()){
-      parser.printErrors();
-      parser.printMessage();
-      return 1;
-   }
-   if (parser.has("help")){
-      parser.printMessage();
-      return 0;
-   }
+	// Check arguments
+	if (!parser.check()){
+		parser.printErrors();
+		parser.printMessage();
+		return 1;
+	}
+	if (parser.has("help")){
+		parser.printMessage();
+		return 0;
+	}
 
-   // Load cascade
+	// Load cascade
 	String face_cascade_name = parser.get<String>(0);
 	if (!faceCascade.load(face_cascade_name)){
 		cerr << "ERROR::CASCADE::FAILURE_LOADING_FACE_CASCADE_FILE" << endl;
@@ -68,45 +68,45 @@ int main(int argc, char** argv){
       }
 	}
 
-   // Open video stream
-   VideoCapture capture;
-   String camera_input = parser.get<String>("camera");
+	// Open video stream
+	VideoCapture capture;
+	String camera_input = parser.get<String>("camera");
 	String video_input = parser.get<String>("video");
-   if (!video_input.empty()){				// Open video file
-      const String name = video_input;
-      capture.open(name);
+	if (!video_input.empty()){				// Open video file
+		const String name = video_input;
+		capture.open(name);
 	}else if (camera_input.size() == 1)	// Open specific camera
-      capture.open(stoi(camera_input));
-   else											// Open default system camera
-      capture.open(0);
+		capture.open(stoi(camera_input));
+	else											// Open default system camera
+	capture.open(0);
 
-   if (!capture.isOpened()){
-       cerr << "ERROR::VIDEO::FAILURE_OPENING_VIDEO_STREAM_INPUT" << endl;
-       return 1;
-   }
+	if (!capture.isOpened()){
+		cerr << "ERROR::VIDEO::FAILURE_OPENING_VIDEO_STREAM_INPUT" << endl;
+		return 1;
+	}
 
-   // Display input video stream info
-   int srcFrameWidth, srcFrameHeight, srcfps;
-   srcFrameWidth = static_cast<int>(capture.get(CAP_PROP_FRAME_WIDTH));
-   srcFrameHeight = static_cast<int>(capture.get(CAP_PROP_FRAME_HEIGHT));
-   srcfps = static_cast<int>(capture.get(CAP_PROP_FPS));
-   cout << "Frame width: " << srcFrameWidth << endl;
-   cout << "  \"  height: " << srcFrameHeight << endl;
-   cout << "Capturing FPS: " << srcfps << endl;
+	// Display input video stream info
+	int srcFrameWidth, srcFrameHeight, srcfps;
+	srcFrameWidth = static_cast<int>(capture.get(CAP_PROP_FRAME_WIDTH));
+	srcFrameHeight = static_cast<int>(capture.get(CAP_PROP_FRAME_HEIGHT));
+	srcfps = static_cast<int>(capture.get(CAP_PROP_FPS));
+	cout << "Frame width: " << srcFrameWidth << endl;
+	cout << "  \"  height: " << srcFrameHeight << endl;
+	cout << "Capturing FPS: " << srcfps << endl;
 
 	// Color output format
 	bool gray = false;
 	if (parser.has("gray"))
 		gray = true;
 
-   // Open video output stream
-   String dest = parser.get<String>("out");
-   bool writeVideo = false;
-   VideoWriter outputVideo;
-   if (!dest.empty()){
+	// Open video output stream
+	String dest = parser.get<String>("out");
+	bool writeVideo = false;
+	VideoWriter outputVideo;
+	if (!dest.empty()){
 		writeVideo = true;
 		const string name = dest + ".avi";
-   	int codec = VideoWriter::fourcc('X', 'V', 'I', 'D');	// mp4 encoding
+		int codec = VideoWriter::fourcc('X', 'V', 'I', 'D');	// mp4 encoding
 		outputVideo.open(name, codec, srcfps, Size(srcFrameWidth, srcFrameHeight), true);
 		if (!outputVideo.isOpened()){
 			cout << "ERROR:VIDEO::FAILURE_OPENING_VIDEO_STREAM_OUTPUT" << endl;
@@ -114,9 +114,9 @@ int main(int argc, char** argv){
 		}
 	}
 
-   Mat frame;	// Frame to read from video source and to draw in
-   size_t nFrames = 0;	// Number of frames readed on every iteration.
-   int64 t0 = cv::getTickCount();	// Number of cpu ticks before start looping
+	Mat frame;	// Frame to read from video source and to draw in
+	size_t nFrames = 0;	// Number of frames readed on every iteration.
+	int64 t0 = cv::getTickCount();	// Number of cpu ticks before start looping
 	int64 processingTime = 0;	// Proccesing time used in detecting faces and eyes
 	// While the video source has frames to be readed and the user don't hit esc
 	while (capture.read(frame) && !(waitKey(1) == 27/*ESC*/)){
@@ -129,17 +129,17 @@ int main(int argc, char** argv){
 		// Output execution stauts with time measurments
 		nFrames++;
 		if (nFrames % 30 == 0){
-         const int N = 30;
-         int64 t1 = cv::getTickCount();
-         cout << "Frames captured: " << cv::format("%5lld", (long long int)nFrames)
-              << "    Average FPS: " <<
-              cv::format("%9.1f", (double)getTickFrequency() * N / (t1 - t0))
-              << "    Average time per frame: " << 
-              cv::format("%9.2f ms", (double)(t1 - t0) * 1000.0f / (N * getTickFrequency()))
-              << "    Processing time: " <<
-				  cv::format("%9.2f ms", (double)(processingTime) * 1000.0f / getTickFrequency())
-				  << std::endl;
-         t0 = t1;
+			const int N = 30;
+			int64 t1 = cv::getTickCount();
+			cout << "Frames captured: " << cv::format("%5lld", (long long int)nFrames)
+			<< "    Average FPS: " <<
+			cv::format("%9.1f", (double)getTickFrequency() * N / (t1 - t0))
+			<< "    Average time per frame: " << 
+			cv::format("%9.2f ms", (double)(t1 - t0) * 1000.0f / (N * getTickFrequency()))
+			<< "    Processing time: " <<
+			cv::format("%9.2f ms", (double)(processingTime) * 1000.0f / getTickFrequency())
+			<< std::endl;
+			t0 = t1;
 		}
 	
 		// Measure time used in detecting faces and eyes
@@ -149,13 +149,13 @@ int main(int argc, char** argv){
 
 		// Write frame on video output
 		if (writeVideo)
-      	outputVideo << frame;
+			outputVideo << frame;
 		// Show frame on window in realtime
-      imshow("OpenCV Facedetection", frame);
-   }
+		imshow("OpenCV Facedetection", frame);
+	}
    
-   std::cout << "Number of captured frames: " << nFrames << endl;
-   return nFrames > 0 ? 0 : 1;
+	std::cout << "Number of captured frames: " << nFrames << endl;
+	return nFrames > 0 ? 0 : 1;
 }
 
 // Search for faces and/or eyes and draw their location
