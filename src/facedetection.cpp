@@ -17,7 +17,7 @@
 using namespace cv;
 using namespace std;
 
-// Search for faces and/or eyes and draw their location
+// Search for faces and/or nose and draw their location
 void detectAndDisplay(Mat frame, bool searchNose, bool gray);
 Ptr<CLAHE> clahe = createCLAHE();
 
@@ -117,7 +117,7 @@ int main(int argc, char** argv){
 	Mat frame;	// Frame to read from video source and to draw in
 	size_t nFrames = 0;	// Number of frames readed on every iteration.
 	int64 t0 = cv::getTickCount();	// Number of cpu ticks before start looping
-	int64 processingTime = 0;	// Proccesing time used in detecting faces and eyes
+	int64 processingTime = 0;	// Proccesing time used in detecting faces and nose
 	// While the video source has frames to be readed and the user don't hit esc
 	while (capture.read(frame) && !(waitKey(1) == 27/*ESC*/)){
 		// Check frame integrity
@@ -142,7 +142,7 @@ int main(int argc, char** argv){
 			t0 = t1;
 		}
 	
-		// Measure time used in detecting faces and eyes
+		// Measure time used in detecting faces and nose
 		int64 tp0 = getTickCount();
 		detectAndDisplay(frame, searchNose, gray);
 		processingTime = getTickCount() - tp0;
@@ -158,7 +158,7 @@ int main(int argc, char** argv){
 	return nFrames > 0 ? 0 : 1;
 }
 
-// Search for faces and/or eyes and draw their location
+// Search for faces and/or nose and draw their location
 void detectAndDisplay(Mat frame, bool searchNose, bool gray){
 	// Get gray frame from the colored frame source
 	Mat grayFrame;
@@ -176,7 +176,7 @@ void detectAndDisplay(Mat frame, bool searchNose, bool gray){
 	for (size_t i = 0; i < faces.size(); i++){
 		rectangle(frame, faces[i], Scalar(255, 0, 0));
 
-		// Use a 3/4 frame size as Region Of Interest to search for eyes 
+		// Use a 3/4 frame size as Region Of Interest to search for nose 
 		if (searchNose){
 			Rect ROI(Point(faces[i].x+faces[i].width*0.2, faces[i].y+faces[i].height*0.35), Size(faces[i].width*0.6, faces[i].height*0.5/*1.7*/));
 			rectangle(frame, ROI, Scalar(0, 0, 255));
