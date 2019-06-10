@@ -17,9 +17,8 @@
 using namespace cv;
 using namespace std;
 
-// Search for faces and/or nose and draw their location
+// Search for faces and/or noses and draw their location
 void detectAndDisplay(Mat frame, bool searchNose, bool gray);
-Ptr<CLAHE> clahe = createCLAHE();
 
 const String keys =
 	"{help h|| Print help message}"
@@ -33,6 +32,7 @@ const String about =
 	"Easy facedetection v1\n"
 	"This program shows a video stream (camera or video file) and shows the faces detected on it.";
 
+Ptr<CLAHE> clahe = createCLAHE();
 CascadeClassifier faceCascade;
 CascadeClassifier noseCascade;
 
@@ -117,7 +117,7 @@ int main(int argc, char** argv){
 	Mat frame;	// Frame to read from video source and to draw in
 	size_t nFrames = 0;	// Number of frames readed on every iteration.
 	int64 t0 = cv::getTickCount();	// Number of cpu ticks before start looping
-	int64 processingTime = 0;	// Proccesing time used in detecting faces and nose
+	int64 processingTime = 0;	// Proccesing time used in detecting faces and noses
 	// While the video source has frames to be readed and the user don't hit esc
 	while (capture.read(frame) && !(waitKey(1) == 27/*ESC*/)){
 		// Check frame integrity
@@ -142,7 +142,7 @@ int main(int argc, char** argv){
 			t0 = t1;
 		}
 	
-		// Measure time used in detecting faces and nose
+		// Measure time used in detecting faces and noses
 		int64 tp0 = getTickCount();
 		detectAndDisplay(frame, searchNose, gray);
 		processingTime = getTickCount() - tp0;
@@ -158,7 +158,7 @@ int main(int argc, char** argv){
 	return nFrames > 0 ? 0 : 1;
 }
 
-// Search for faces and/or nose and draw their location
+// Search for faces and/or noses and draw their location
 void detectAndDisplay(Mat frame, bool searchNose, bool gray){
 	// Get gray frame from the colored frame source
 	Mat grayFrame;
@@ -176,18 +176,19 @@ void detectAndDisplay(Mat frame, bool searchNose, bool gray){
 	for (size_t i = 0; i < faces.size(); i++){
 		rectangle(frame, faces[i], Scalar(255, 0, 0));
 
-		// Use a 3/4 frame size as Region Of Interest to search for nose 
+		// Use a 3/4 frame size as Region Of Interest to search for noses
 		if (searchNose){
-			Rect ROI(Point(faces[i].x+faces[i].width*0.2, faces[i].y+faces[i].height*0.35), Size(faces[i].width*0.6, faces[i].height*0.5/*1.7*/));
+			Rect ROI(Point(faces[i].x+faces[i].width*0.2, faces[i].y+faces[i].height*0.35),
+					 Size(faces[i].width*0.6, faces[i].height*0.5));
 			rectangle(frame, ROI, Scalar(0, 0, 255));
 			Mat frameROI = grayFrame(ROI);
 
 			vector<Rect> noses;
-			noseCascade.detectMultiScale(frameROI, noses, 1.25, 2, 0, Size(35, 30), Size(90, 80));//Size(25, 20), Size(70, 50));
+			noseCascade.detectMultiScale(frameROI, noses, 1.25, 2, 0, Size(35, 30), Size(90, 80));
 			for (size_t j = 0; j < noses.size(); j++){
 				// Use the ROI Mat/frame as reference for location and dimension
-				Point p1(/*faces[i].x +*/ ROI.x + noses[j].x, /*faces[i].y +*/ ROI.y + noses[j].y);
-				Point p2(/*faces[i].x +*/ ROI.x + noses[j].x + noses[j].width, /*faces[i].y +*/ ROI.y + noses[j].y + noses[j].height);
+				Point p1(ROI.x + noses[j].x, ROI.y + noses[j].y);
+				Point p2(ROI.x + noses[j].x + noses[j].width, ROI.y + noses[j].y + noses[j].height);
 				rectangle(frame, p1, p2, Scalar(0, 255, 0));
 			}// for
 		}// if
