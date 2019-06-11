@@ -18,7 +18,7 @@ using namespace cv;
 using namespace std;
 
 // Search for faces and/or noses and draw their location
-void detectAndDisplay(Mat frame, bool searchNose, bool gray);
+void detectAndDisplay(Mat frame, bool searchNose, bool noseLoc, bool gray);
 
 const String keys =
 	"{help h|| Print help message}"
@@ -27,7 +27,8 @@ const String keys =
 	"{@face_cascade f|/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml|.xml file}"
 	"{nose_cascade n|| .xml nose cascade file}"
 	"{out o|| Write a video file -o <name>.avi}"
-	"{gray g|| Output video in grayscale}";
+	"{gray g|| Output video in grayscale}"
+	"{nose_location l|| Writes to stdout the nose location if detected, otherwise \'-1, -1\'}";
 const String about =
 	"Easy facedetection v1\n"
 	"This program shows a video stream (camera or video file) and shows the faces detected on it.";
@@ -58,6 +59,7 @@ int main(int argc, char** argv){
 		return 1;
 	}
 
+	// Check nose cascade
 	bool searchNose = false;
 	String nose_cascade_name = parser.get<String>("nose_cascade");
 	if (!nose_cascade_name.empty()){
@@ -90,14 +92,19 @@ int main(int argc, char** argv){
 	srcFrameWidth = static_cast<int>(capture.get(CAP_PROP_FRAME_WIDTH));
 	srcFrameHeight = static_cast<int>(capture.get(CAP_PROP_FRAME_HEIGHT));
 	srcfps = static_cast<int>(capture.get(CAP_PROP_FPS));
-	cout << "Frame width: " << srcFrameWidth << endl;
-	cout << "  \"  height: " << srcFrameHeight << endl;
-	cout << "Capturing FPS: " << srcfps << endl;
+	//cout << "Frame width: " << srcFrameWidth << endl;
+	//cout << "  \"  height: " << srcFrameHeight << endl;
+	//cout << "Capturing FPS: " << srcfps << endl;
 
 	// Color output format
 	bool gray = false;
 	if (parser.has("gray"))
 		gray = true;
+
+	// Write nose location
+	bool noseLoc = false;
+	if (parser.has("nose_location"))
+		noseLoc = true;
 
 	// Open video output stream
 	String dest = parser.get<String>("out");
@@ -109,7 +116,7 @@ int main(int argc, char** argv){
 		int codec = VideoWriter::fourcc('X', 'V', 'I', 'D');	// mp4 encoding
 		outputVideo.open(name, codec, srcfps, Size(srcFrameWidth, srcFrameHeight), true);
 		if (!outputVideo.isOpened()){
-			cout << "ERROR:VIDEO::FAILURE_OPENING_VIDEO_STREAM_OUTPUT" << endl;
+			cerr << "ERROR:VIDEO::FAILURE_OPENING_VIDEO_STREAM_OUTPUT" << endl;
 			return 1;
 		}
 	}
@@ -128,7 +135,7 @@ int main(int argc, char** argv){
 
 		// Output execution stauts with time measurments
 		nFrames++;
-		if (nFrames % 30 == 0){
+		if (!noseLoc && nFrames % 30 == 0){
 			const int N = 30;
 			int64 t1 = cv::getTickCount();
 			cout << "Frames captured: " << cv::format("%5lld", (long long int)nFrames)
@@ -144,7 +151,7 @@ int main(int argc, char** argv){
 	
 		// Measure time used in detecting faces and noses
 		int64 tp0 = getTickCount();
-		detectAndDisplay(frame, searchNose, gray);
+		detectAndDisplay(frame, searchNose, noseLoc, gray);
 		processingTime = getTickCount() - tp0;
 
 		// Write frame on video output
@@ -154,12 +161,12 @@ int main(int argc, char** argv){
 		imshow("OpenCV Facedetection", frame);
 	}
    
-	std::cout << "Number of captured frames: " << nFrames << endl;
+	//std::cout << "Number of captured frames: " << nFrames << endl;
 	return nFrames > 0 ? 0 : 1;
 }
 
 // Search for faces and/or noses and draw their location
-void detectAndDisplay(Mat frame, bool searchNose, bool gray){
+void detectAndDisplay(Mat frame, bool searchNose, bool noseLoc, bool gray){
 	// Get gray frame from the colored frame source
 	Mat grayFrame;
 	cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
@@ -172,18 +179,19 @@ void detectAndDisplay(Mat frame, bool searchNose, bool gray){
 
 	// Detect faces on the frame and draw their location with a blue rectangle
 	vector<Rect> faces;
+	vector<Rect> noses;
+	Rect ROI;			// TODO: deduce search window size by proportions of the video input
 	faceCascade.detectMultiScale(grayFrame, faces, 1.25, 2, 0, Size(100, 150), Size(300, 450));
 	for (size_t i = 0; i < faces.size(); i++){
 		rectangle(frame, faces[i], Scalar(255, 0, 0));
 
 		// Use a 3/4 frame size as Region Of Interest to search for noses
 		if (searchNose){
-			Rect ROI(Point(faces[i].x+faces[i].width*0.2, faces[i].y+faces[i].height*0.35),
-					 Size(faces[i].width*0.6, faces[i].height*0.5));
+			ROI = Rect(Point(faces[i].x+faces[i].width*0.2, faces[i].y+faces[i].height*0.35),
+					   Size(faces[i].width*0.6, faces[i].height*0.5));
 			rectangle(frame, ROI, Scalar(0, 0, 255));
 			Mat frameROI = grayFrame(ROI);
 
-			vector<Rect> noses;
 			noseCascade.detectMultiScale(frameROI, noses, 1.25, 2, 0, Size(35, 30), Size(90, 80));
 			for (size_t j = 0; j < noses.size(); j++){
 				// Use the ROI Mat/frame as reference for location and dimension
@@ -193,5 +201,15 @@ void detectAndDisplay(Mat frame, bool searchNose, bool gray){
 			}// for
 		}// if
 	}// for
+
+	// Write nose location to stdout if detected
+	if (noseLoc){
+		if (!noses.empty()){
+			int x = ((ROI.x + noses[0].x) * 2 + noses[0].width) / 2;
+			int y = ((ROI.y + noses[0].y) * 2 + noses[0].height) / 2;
+			cout << x << ", " << y << endl;
+		}else
+			cout << "-1, -1" << endl;
+	}
 }
 

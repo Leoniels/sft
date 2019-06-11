@@ -14,6 +14,8 @@ outfile = open(args["out"], 'w')
 # get video properties
 frcount = videocap.get(cv2.CAP_PROP_FRAME_COUNT)
 fps = videocap.get(cv2.CAP_PROP_FPS)
+print("Number of frames " + str(frcount))
+print("Frames per seconds " + str(fps))
 
 clicked = False
 point = []
@@ -41,8 +43,9 @@ def catchpoint(frame):
 # catch first point 
 catchpoint(frame)
 prevpoint = point
-# frame index to show every midsecond frame
-fridx = int(fps/2)
+# frame index to show next (every 0.5 sec)
+frjump = int(fps/2)
+fridx = frjump
 videocap.set(cv2.CAP_PROP_POS_FRAMES, fridx-1)
 retval, frame = videocap.read()
 while retval:
@@ -54,40 +57,43 @@ while retval:
     incx = diffx / float(fps/2)
     incy = diffy / float(fps/2)
     offset = [0.0, 0.0]
-    # frame point
-    intpt = [int(prevpoint[0]), int(prevpoint[1])]
-    for i in range(0, int(fps/2)-1):
-        outfile.write(str(intpt[0]) + ", " + str(intpt[1]) + "\n")
+    # estimated point 0.5 sec's frame
+    estpt = [int(prevpoint[0]), int(prevpoint[1])]
+    for i in range(0, frjump-1):
+        outfile.write(str(estpt[0]) + ", " + str(estpt[1]) + "\n")
         # increase offset for next frame
         offset[0] += incx
         offset[1] += incy
-        intpt = [int(prevpoint[0]+offset[0]), int(prevpoint[1]+offset[1])]
+        estpt = [int(prevpoint[0]+offset[0]), int(prevpoint[1]+offset[1])]
     outfile.write(str(point[0]) + ", " + str(point[1]) + "\n")
     prevpoint = point
-    fridx += int(fps/2)
+    fridx += frjump
     videocap.set(cv2.CAP_PROP_POS_FRAMES, fridx-1)
     retval, frame = videocap.read()
+print(fridx)
 
-# last frame
-videocap.set(cv2.CAP_PROP_POS_FRAMES, frcount-1)
-retval, frame = videocap.read()
-catchpoint(frame)
-# offset from the two points
-diffx = point[0] - prevpoint[0]
-diffy = point[1] - prevpoint[1]
-# offset per frame
-incx = diffx / float(frcount-1-fridx)
-incy = diffy / float(frcount-1-fridx)
-offset = [0.0, 0.0]
-# frame point
-intpt = [int(prevpoint[0]), int(prevpoint[1])]
-for i in range(0, int(frcount)-1-fridx-1):
-    outfile.write(str(intpt[0]) + ", " + str(intpt[1]) + "\n")
-    # increase offset for next frame
-    offset[0] += incx
-    offset[1] += incy
-    intpt = [int(prevpoint[0]+offset[0]), int(prevpoint[1]+offset[1])]
-outfile.write(str(point[0]) + ", " + str(point[1]) + "\n")
+# frame index jump overshooted
+if fridx > frcount:
+    fridx -= frjump
+    videocap.set(cv2.CAP_PROP_POS_FRAMES, frcount-1)
+    retval, frame = videocap.read()
+    catchpoint(frame)
+    # offset from the two points
+    diffx = point[0] - prevpoint[0]
+    diffy = point[1] - prevpoint[1]
+    # offset per frame
+    incx = diffx / float(frcount-1-fridx)
+    incy = diffy / float(frcount-1-fridx)
+    offset = [0.0, 0.0]
+    # estimated point 0.5 sec's frame
+    estpt = [int(prevpoint[0]), int(prevpoint[1])]
+    for i in range(0, int(frcount)-fridx-1):
+        outfile.write(str(estpt[0]) + ", " + str(estpt[1]) + "\n")
+        # increase offset for next frame
+        offset[0] += incx
+        offset[1] += incy
+        estpt = [int(prevpoint[0]+offset[0]), int(prevpoint[1]+offset[1])]
+    outfile.write(str(point[0]) + ", " + str(point[1]) + "\n")
  
 # close video, window and file
 videocap.release()
