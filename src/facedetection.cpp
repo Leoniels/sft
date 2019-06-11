@@ -12,6 +12,7 @@
 
 #include <vector>
 #include <iostream>
+#include <fstream>
 #include <string>
 
 using namespace cv;
@@ -28,7 +29,8 @@ const String keys =
 	"{nose_cascade n|| .xml nose cascade file}"
 	"{out o|| Write a video file -o <name>.avi}"
 	"{gray g|| Output video in grayscale}"
-	"{nose_location l|| Writes to stdout the nose location if detected, otherwise \'-1, -1\'}";
+	"{nose_location l|| Writes to stdout the nose location if detected, otherwise \'-1, -1\'}"
+	"{proc_time p|| Write the processing time of detection in a file (camproctime or <vid>proctime}";
 const String about =
 	"Easy facedetection v1\n"
 	"This program shows a video stream (camera or video file) and shows the faces detected on it.";
@@ -106,6 +108,16 @@ int main(int argc, char** argv){
 	if (parser.has("nose_location"))
 		noseLoc = true;
 
+	// Open output file
+	ofstream proctimefile;
+	if (parser.has("proc_time")) {
+		if (!video_input.empty()){
+			const string name = video_input.substr(0, video_input.size()-4) + "proctime";
+			proctimefile.open(name, ios::trunc);
+		}else
+			proctimefile.open("camproctime", ios::trunc);
+	}
+
 	// Open video output stream
 	String dest = parser.get<String>("out");
 	bool writeVideo = false;
@@ -145,7 +157,7 @@ int main(int argc, char** argv){
 			cv::format("%9.2f ms", (double)(t1 - t0) * 1000.0f / (N * getTickFrequency()))
 			<< "    Processing time: " <<
 			cv::format("%9.2f ms", (double)(processingTime) * 1000.0f / getTickFrequency())
-			<< std::endl;
+			<< endl;
 			t0 = t1;
 		}
 	
@@ -154,6 +166,12 @@ int main(int argc, char** argv){
 		detectAndDisplay(frame, searchNose, noseLoc, gray);
 		processingTime = getTickCount() - tp0;
 
+		// Write proccessing time in file
+		if (proctimefile.is_open())
+			proctimefile <<
+			cv::format("%.4f", (double)(processingTime) * 1000.0f / getTickFrequency())
+			<< endl;
+
 		// Write frame on video output
 		if (writeVideo)
 			outputVideo << frame;
@@ -161,6 +179,14 @@ int main(int argc, char** argv){
 		imshow("OpenCV Facedetection", frame);
 	}
    
+	// Release resources
+	if (proctimefile.is_open())
+		proctimefile.close();
+	if (capture.isOpened())
+		capture.release();
+	if (outputVideo.isOpened())
+		outputVideo.release();
+
 	//std::cout << "Number of captured frames: " << nFrames << endl;
 	return nFrames > 0 ? 0 : 1;
 }
