@@ -1,4 +1,5 @@
 import sys
+import math as mt
 import ast
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
@@ -13,51 +14,50 @@ def ecm(sample):
     
     return sum / len(sample)
 
-def trimming(lst):
-    print("lst: " + str(lst))
-    for i in range(len(lst)):
-        if len(lst[i]) > frames:
-            lst[i] = lst[i][:frames]
+def distance(reftrace, trace):
+    distances = []
+    for i in range(0, len(trace)):
+        xdiff = reftrace[i][0] - trace[i][0]
+        ydiff = reftrace[i][1] - trace[i][1]
+        distances.append(mt.sqrt(xdiff**2+ydiff**2))
+    return distances
 
-def routing(route=[]):
-    trimming(route)
-    for i in range(len(route)):
-        route[i] = list(map(abs, route[i]))
-
+def routing(traces=[]):
+    distance1 = distance(traces[0], traces[1])
+    distance2 = distance(traces[0], traces[2])
     err = []
-    for i in route:
-        err += [round(ecm(i), 2)]
+    err += [round(ecm(distance1), 2)]
+    err += [round(ecm(distance2), 2)]
 
-    x = np.arange(0, frames)
+    x = np.arange(0, len(traces[0]))
 
     plt.xlabel('Frame')
     plt.ylabel('Error')
     plt.title('Controller Samples')
-    red_patch = mpatches.Patch(color='red', label='P')
-    blue_patch = mpatches.Patch(color='blue', label='PID')
+    red_patch = mpatches.Patch(color='red', label='Trace1')
+    blue_patch = mpatches.Patch(color='blue', label='Trace2')
     plt.legend(handles=[red_patch, blue_patch])
-    plt.text(200, 190, r'ECM=' + str(err[0]), color='red')
-    plt.text(200, 176, r'ECM=' + str(err[1]), color='blue')
-    plt.plot(x, route[0], 'r', x, route[1], 'b')
+    plt.text(20, 15, r'ECM=' + str(err[0]), color='red')
+    plt.text(20, 13, r'ECM=' + str(err[1]), color='blue')
+    plt.plot(x, distance1, 'r', x, distance2, 'b')
     plt.show()
+
+    print(err[0])
    
 def main():
-    if len(sys.argv) > 3:
-        route = []
-        for i in range(2, len(sys.argv)):
-            with open(sys.argv[i]) as file:
-                for line in file:
-                    route += [ast.literal_eval(line)]
-        print("str: " + str(route))
-        
-        routing(route)
-    else:
-        print("ERROR: please specify the number of frames and two text files.")
+    traces = []
+    for i in range(1, len(sys.argv)):
+        trace = []
+        with open(sys.argv[i]) as file:
+            for line in file:
+                trace.append(ast.literal_eval(line))
+        traces.append(trace)
+
+    routing(traces)
     
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        frames = ast.literal_eval(sys.argv[1])
+    if len(sys.argv) >= 3:
         main()
     else:
-        print("Usage: <number of frames> <file_PID> <file_FuzzyLogic>")
+        print("Usage: plot.py <ref_file> <file_1> [<file_2>]")
