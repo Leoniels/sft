@@ -31,10 +31,13 @@ const String keys =
 	"{video v|| Video file as video stream input}"
 	"{@face_cascade f|/usr/share/opencv4/haarcascades/haarcascade_frontalface"
 	"_default.xml|.xml file}"
+	"{eyes_cascade e|| .xml eyes cascade file}"
 	"{nose_cascade n|| .xml nose cascade file}"
 	"{out o|| Write a video file -o <name>.avi}"
 	"{gray g|| Output video in grayscale}"
-	"{nose_location l|| Writes to stdout the nose location if detected, "
+	"{nose_location nl|| Writes to stdout the nose location if detected, "
+	"otherwise \'-1, -1\'}"
+	"{eyes_location el|| Writes to stdout the eyes location if detected, "
 	"otherwise \'-1, -1\'}"
 	"{proc_time p|| Write the processing time of detection in a file "
 	"(camproctime or <vid>proctime)}";
@@ -44,6 +47,8 @@ const String about =
 
 Ptr<CLAHE> clahe = createCLAHE();
 CascadeClassifier faceCascade;
+bool searchEyes = false;
+CascadeClassifier eyesCascade;
 bool searchNose = false;
 CascadeClassifier noseCascade;
 VideoCapture capture;
@@ -51,6 +56,7 @@ bool writeVideo = false;
 VideoWriter outputVideo;
 bool gray = false;
 bool noseLoc = false;
+bool eyesLoc = false;
 ofstream proctimefile;
 
 int main(int argc, char** argv){
@@ -70,7 +76,7 @@ int main(int argc, char** argv){
 		}
 
 		nFrames++;
-		if (!noseLoc && nFrames % 30 == 0)
+		if (!(noseLoc || eyesLoc) && nFrames % 30 == 0)
 			printExecStatistics(nFrames, processingTime, &t0);
 
 		// Measure time used in detecting faces and noses
@@ -128,6 +134,17 @@ int init(int argc, char** argv){
 		cerr << "ERROR::CASCADE::FAILURE_LOADING_FACE_CASCADE_FILE" << endl;
 		return 1;
 	}
+	
+	// Check eyes cascade
+	String eyes_cascade_name = parser.get<String>("eyes_cascade");
+	if(!eyes_cascade_name.empty()){
+		searchEyes = true;
+		if (!eyesCascade.load(eyes_cascade_name)){
+			cerr <<
+			"ERROR::CASCADE::FAILURE_LOADING_EYES_CASCADE_FILE"
+			<< endl;
+		}
+	}
 
 	// Check nose cascade
 	String nose_cascade_name = parser.get<String>("nose_cascade");
@@ -168,11 +185,8 @@ int init(int argc, char** argv){
 		srcFrameWidth = static_cast<int>(capture.get(CAP_PROP_FRAME_WIDTH));
 		srcFrameHeight = static_cast<int>(capture.get(CAP_PROP_FRAME_HEIGHT));
 		srcfps = static_cast<int>(capture.get(CAP_PROP_FPS));
-		outputVideo.open(name,
-							codec,
-							srcfps,
-							Size(srcFrameWidth, srcFrameHeight),
-							true);
+		outputVideo.open(name, codec, srcfps,
+							Size(srcFrameWidth, srcFrameHeight), true);
 		if (!outputVideo.isOpened()){
 			cerr <<
 			"ERROR:VIDEO::FAILURE_OPENING_VIDEO_STREAM_OUTPUT"
@@ -188,6 +202,9 @@ int init(int argc, char** argv){
 	// Write nose location
 	if (parser.has("nose_location"))
 		noseLoc = true;
+	// Write eyes location
+	if (parser.has("eyes_location"))
+		eyesLoc = true;
 	// Open output file
 	if (parser.has("proc_time")){
 		if (!video_input.empty()){
@@ -237,51 +254,77 @@ void detectAndDisplay(Mat frame){
 
 	// Detect faces on the frame and draw their location with a blue rectangle
 	vector<Rect> faces;
+	vector<Rect> eyes;
 	vector<Rect> noses;
-	Rect ROI;
-	faceCascade.detectMultiScale(grayFrame,
-									faces,
-									1.2,
-									3,
-									0,
-									Size(100, 150),
+	Rect ROINose;
+	Rect ROIEyes;
+	faceCascade.detectMultiScale(grayFrame, faces, 1.2,	3, 0, Size(100, 150),
 									Size(300, 450));
 	for (size_t i = 0; i < faces.size(); i++){
 		rectangle(frame, faces[i], Scalar(255, 0, 0));
 
-		// Use a 3/4 frame size as Region Of Interest to search for noses
+		// Use a 3/4 frame size as Region Of Interest to search the nose
 		if (searchNose){
-			ROI = Rect(Point(faces[i].x+faces[i].width*0.2,
+			ROINose = Rect(Point(faces[i].x+faces[i].width*0.2,
 						faces[i].y+faces[i].height*0.35),
 						Size(faces[i].width*0.6, faces[i].height*0.5));
-			rectangle(frame, ROI, Scalar(0, 0, 255));
-			Mat frameROI = grayFrame(ROI);
+			rectangle(frame, ROINose, Scalar(0, 0, 255));
+			Mat frameROI = grayFrame(ROINose);
 
-			noseCascade.detectMultiScale(frameROI,
-											noses,
-											1.1,
-											2,
-											0,
-											Size(35, 30),
-											Size(90, 80));
+			noseCascade.detectMultiScale(frameROI, noses, 1.1, 2, 0,
+											Size(35, 30), Size(90, 80));
 			for (size_t j = 0; j < noses.size(); j++){
-				// Use the ROI as reference for location and dimension
-				Point p1(ROI.x + noses[j].x, ROI.y + noses[j].y);
-				Point p2(ROI.x + noses[j].x + noses[j].width,
-							ROI.y + noses[j].y + noses[j].height);
+				// Use the ROINose as reference for location and dimension
+				Point p1(ROINose.x + noses[j].x, ROINose.y + noses[j].y);
+				Point p2(ROINose.x + noses[j].x + noses[j].width,
+							ROINose.y + noses[j].y + noses[j].height);
 				rectangle(frame, p1, p2, Scalar(0, 255, 0));
+			}// for
+		}// if
+
+		// Same as nose for eyes
+		if (searchEyes){
+			ROIEyes = Rect(Point(faces[i].x, faces[i].y),
+						Size(faces[i].width, faces[i].height/1.7));
+			rectangle(frame, ROIEyes, Scalar(0, 125, 125));
+			Mat frameROI = grayFrame(ROIEyes);
+
+			eyesCascade.detectMultiScale(frameROI, eyes, 1.2, 1, 0,
+											Size(25, 20), Size(70, 50));
+			for (size_t j = 0; j < eyes.size(); j++){
+				Point p1(ROIEyes.x + eyes[j].x, ROIEyes.y + eyes[j].y);
+				Point p2(ROIEyes.x + eyes[j].x + eyes[j].width,
+							ROIEyes.y + eyes[j].y + eyes[j].height);
+				rectangle(frame, p1, p2, Scalar(125, 125, 0));
 			}// for
 		}// if
 	}// for
 
-	// Write nose location to stdout if detected
-	if (noseLoc){
-		if (!noses.empty()){
-			int x = ((ROI.x + noses[0].x) * 2 + noses[0].width) / 2;
-			int y = ((ROI.y + noses[0].y) * 2 + noses[0].height) / 2;
-			cout << x << ", " << y << endl;
-		}else
-			cout << "-1, -1" << endl;
+	// Write features locations to stdout if detected
+	if (noseLoc || eyesLoc){
+		if (eyesLoc){
+			if(eyes.size() >= 2){
+				short x = ((ROIEyes.x + eyes[0].x) * 2 + eyes[0].width)/2;
+				short y = ((ROIEyes.y + eyes[0].y) * 2 + eyes[0].height)/2;
+				cout << x << ", " << y;
+				x = ((ROIEyes.x + eyes[1].x)*2 + eyes[1].width)/2;
+				y = ((ROIEyes.y + eyes[1].y)*2 + eyes[1].height)/2;
+				cout << ", " << x << ", " << y;
+			}else
+				cout << "-1, -1, -1, -1";
+		}
+		if (noseLoc && eyesLoc)
+			cout << ", ";
+		if (noseLoc){
+			if (!noses.empty()){
+				short x = ((ROINose.x + noses[0].x) * 2 + noses[0].width)/2;
+				short y = ((ROINose.y + noses[0].y) * 2 + noses[0].height)/2;
+				cout << x << ", " << y;
+			}else
+				cout << "-1, -1";
+		}
+
+		cout << endl;
 	}
 }
 
