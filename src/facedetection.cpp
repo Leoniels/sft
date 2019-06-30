@@ -225,10 +225,10 @@ void printExecStatistics(size_t nFrames, int64 processingTime, int64 *t0){
 
 // Search for faces and/or noses and draw their location
 void detectAndDisplay(Mat frame){
-	// Get gray frame from the colored frame source
+	// Convert the frame to grayscale
 	Mat grayFrame;
 	cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
-	//equalizeHist(grayFrame, grayFrame);
+	// Apply contrast limiterd adaptative histogram equalization
 	clahe->apply(grayFrame, grayFrame);
 
 	// Set the output frame as gray too
@@ -238,23 +238,37 @@ void detectAndDisplay(Mat frame){
 	// Detect faces on the frame and draw their location with a blue rectangle
 	vector<Rect> faces;
 	vector<Rect> noses;
-	Rect ROI;			// TODO: deduce search window size by proportions of the video input
-	faceCascade.detectMultiScale(grayFrame, faces, 1.25, 2, 0, Size(100, 150), Size(300, 450));
+	Rect ROI;
+	faceCascade.detectMultiScale(grayFrame,
+									faces,
+									1.2,
+									3,
+									0,
+									Size(100, 150),
+									Size(300, 450));
 	for (size_t i = 0; i < faces.size(); i++){
 		rectangle(frame, faces[i], Scalar(255, 0, 0));
 
 		// Use a 3/4 frame size as Region Of Interest to search for noses
 		if (searchNose){
-			ROI = Rect(Point(faces[i].x+faces[i].width*0.2, faces[i].y+faces[i].height*0.35),
-					   Size(faces[i].width*0.6, faces[i].height*0.5));
+			ROI = Rect(Point(faces[i].x+faces[i].width*0.2,
+						faces[i].y+faces[i].height*0.35),
+						Size(faces[i].width*0.6, faces[i].height*0.5));
 			rectangle(frame, ROI, Scalar(0, 0, 255));
 			Mat frameROI = grayFrame(ROI);
 
-			noseCascade.detectMultiScale(frameROI, noses, 1.25, 2, 0, Size(35, 30), Size(90, 80));
+			noseCascade.detectMultiScale(frameROI,
+											noses,
+											1.1,
+											2,
+											0,
+											Size(35, 30),
+											Size(90, 80));
 			for (size_t j = 0; j < noses.size(); j++){
-				// Use the ROI Mat/frame as reference for location and dimension
+				// Use the ROI as reference for location and dimension
 				Point p1(ROI.x + noses[j].x, ROI.y + noses[j].y);
-				Point p2(ROI.x + noses[j].x + noses[j].width, ROI.y + noses[j].y + noses[j].height);
+				Point p2(ROI.x + noses[j].x + noses[j].width,
+							ROI.y + noses[j].y + noses[j].height);
 				rectangle(frame, p1, p2, Scalar(0, 255, 0));
 			}// for
 		}// if
