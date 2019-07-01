@@ -245,7 +245,6 @@ void detectAndDisplay(Mat frame){
 	// Convert the frame to grayscale
 	Mat grayFrame;
 	cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
-	// Apply contrast limiterd adaptative histogram equalization
 	clahe->apply(grayFrame, grayFrame);
 
 	// Set the output frame as gray too
@@ -253,11 +252,8 @@ void detectAndDisplay(Mat frame){
 		cvtColor(grayFrame, frame, COLOR_GRAY2BGR);
 
 	// Detect faces on the frame and draw their location with a blue rectangle
-	vector<Rect> faces;
-	vector<Rect> eyes;
-	vector<Rect> noses;
-	Rect ROINose;
-	Rect ROIEyes;
+	vector<Rect> faces, eyes, noses;
+	Rect ROINose, ROIEyes;
 	faceCascade.detectMultiScale(grayFrame, faces, 1.2,	3, 0, Size(100, 150),
 									Size(300, 450));
 	for (size_t i = 0; i < faces.size(); i++){
@@ -266,12 +262,12 @@ void detectAndDisplay(Mat frame){
 		// Use a 3/4 frame size as Region Of Interest to search the nose
 		if (searchNose){
 			ROINose = Rect(Point(faces[i].x+faces[i].width*0.2,
-						faces[i].y+faces[i].height*0.35),
-						Size(faces[i].width*0.6, faces[i].height*0.5));
+							faces[i].y+faces[i].height*0.35),
+							Size(faces[i].width*0.6, faces[i].height*0.5));
 			rectangle(frame, ROINose, Scalar(0, 0, 255));
 			Mat frameROI = grayFrame(ROINose);
 
-			noseCascade.detectMultiScale(frameROI, noses, 1.1, 2, 0,
+			noseCascade.detectMultiScale(frameROI, noses, 1.2, 2, 0,
 											Size(35, 30), Size(90, 80));
 			for (size_t j = 0; j < noses.size(); j++){
 				// Use the ROINose as reference for location and dimension
@@ -285,7 +281,7 @@ void detectAndDisplay(Mat frame){
 		// Same as nose for eyes
 		if (searchEyes){
 			ROIEyes = Rect(Point(faces[i].x, faces[i].y),
-						Size(faces[i].width, faces[i].height/1.7));
+							Size(faces[i].width, faces[i].height/1.7));
 			rectangle(frame, ROIEyes, Scalar(0, 125, 125));
 			Mat frameROI = grayFrame(ROIEyes);
 
