@@ -23,7 +23,7 @@ int init(int argc, char** argv);
 // Print execution statistics throught stdout
 void printExecStatistics(size_t nFrames, int64 processingTime, int64 *t0);
 // Search for faces and/or noses and draw their location
-void detectAndDisplay(Mat frame);
+void trackAndDraw(Mat frame);
 
 const String keys =
 	"{help h|| Print help message}"
@@ -31,8 +31,8 @@ const String keys =
 	"{video v|| Video file as video stream input}"
 	"{@face_cascade f|/usr/share/opencv4/haarcascades/haarcascade_frontalface"
 	"_default.xml|.xml file}"
-	"{eyes_cascade e|| .xml eyes cascade file}"
-	"{nose_cascade n|| .xml nose cascade file}"
+	"{eyes_cascade e|| track eyes using cascade file specified}"
+	"{nose_cascade n|| track eyes using cascade file specified}"
 	"{out o|| Write a video file -o <name>.avi}"
 	"{gray g|| Output video in grayscale}"
 	"{nose_location nl|| Writes to stdout the nose location if detected, "
@@ -45,21 +45,22 @@ const String about =
 	"Easy facedetection v1\n"
 	"This program is a facetracker concept implemented using haarcascades";
 
-Ptr<CLAHE> clahe = createCLAHE();
-CascadeClassifier faceCascade;
-bool searchEyes = false;
-CascadeClassifier eyesCascade;
-bool searchNose = false;
-CascadeClassifier noseCascade;
-VideoCapture capture;
-bool writeVideo = false;
-VideoWriter outputVideo;
-bool gray = false;
-bool noseLoc = false;
-bool eyesLoc = false;
-ofstream proctimefile;
-
+Ptr<CLAHE> clahe = createCLAHE();	// Gray range equalizer
+CascadeClassifier faceCascade;		// Face haarclassifier
+bool searchEyes = false;			// Track eyes
+CascadeClassifier eyesCascade;		// Eyes haarclassifier
+bool searchNose = false;			// Track nose
+CascadeClassifier noseCascade;		// Nose cascade
+VideoCapture capture;				// Video where the face is tracked
+bool writeVideo = false;			// Write output video
+VideoWriter outputVideo;			// Video output stream
+bool gray = false;					// Output gray video instead of coloured
+bool noseLoc = false;				// Output nose location
+bool eyesLoc = false;				// Output eyes location
+ofstream proctimefile;				// File stream to store process time
+									// invested in tracking
 int main(int argc, char** argv){
+	// Parse command line arguments and init global variables 
 	if (init(argc, argv) != 0)
 		return 1;
 
@@ -81,7 +82,7 @@ int main(int argc, char** argv){
 
 		// Measure time used in detecting faces and noses
 		int64 tp0 = getTickCount();
-		detectAndDisplay(frame);
+		trackAndDraw(frame);
 		processingTime = getTickCount() - tp0;
 
 		// Write proccessing time in file
@@ -107,7 +108,6 @@ int main(int argc, char** argv){
 	if (outputVideo.isOpened())
 		outputVideo.release();
 
-	//std::cout << "Number of captured frames: " << nFrames << endl;
 	return nFrames > 0 ? 0 : 1;
 }
 
@@ -240,8 +240,8 @@ void printExecStatistics(size_t nFrames, int64 processingTime, int64 *t0){
 }
 
 
-// Search for faces and/or noses and draw their location
-void detectAndDisplay(Mat frame){
+// Search for faces, eyes and noses and draw their location
+void trackAndDraw(Mat frame){
 	// Convert the frame to grayscale
 	Mat grayFrame;
 	cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
@@ -251,7 +251,7 @@ void detectAndDisplay(Mat frame){
 	if (gray)
 		cvtColor(grayFrame, frame, COLOR_GRAY2BGR);
 
-	// Detect faces on the frame and draw their location with a blue rectangle
+	// Detect faces on the frame and draw their location 
 	vector<Rect> faces, eyes, noses;
 	Rect ROINose, ROIEyes;
 	faceCascade.detectMultiScale(grayFrame, faces, 1.2,	3, 0, Size(100, 150),

@@ -1,8 +1,8 @@
-# Generic makefile
+# All terran Makefile
 # Author: Leonardo Niels Pardi
 
 ###	Name of the final executable
-name = facedetection 
+name = sft 
 
 ###	Directories
 IDIR = /usr/include/opencv4 
@@ -11,30 +11,24 @@ SDIR = src
 BDIR = bin
 
 ###	Compiler settings
-CC = gcc
-CXX = g++
-CXXFLAGS = -I$(IDIR) #-O3
+CXXFLAGS = -I$(IDIR)
 LDFLAGS = -lopencv_core -lopencv_videoio -lopencv_highgui -lopencv_imgproc -lopencv_objdetect
 
 ###	Sources
-csrc = $(wildcard $(SDIR)/*.c)
 cppsrc = $(wildcard $(SDIR)/*.cpp)
 ###	Objects
-cobj = $(csrc:$(SDIR)/%.c=$(ODIR)/%.o)
-cppobj = $(cppsrc:$(SDIR)/%.cpp=$(ODIR)/%.o)
-allobj = $(cobj) $(cppobj)
+cppobj = $(cppsrc:$(SDIR)/%.cpp=%.o)
+###	ODIR + Obj
+pcppobj = $(patsubst %,$(ODIR)/%,$(cppobj))
 
 ###	Rules
-$(BDIR)/$(name): $(allobj)
+$(ODIR)/%.o: $(SDIR)/%.cpp 
+	$(CXX) -c -o $@ $< $(CXXFLAGS)
+
+$(BDIR)/$(name): $(pcppobj)
 	$(CXX) -o $@ $^ $(LDFLAGS)
-
-$(cobj): $(csrc)
-	$(CC) -c -o $@ $^ $(CXXFLAGS)
-
-$(cppobj): $(cppsrc)
-	$(CXX) -c -o $@ $^ $(CXXFLAGS)
 
 ###	Remove
 .PHONY: clean
 clean:
-	rm -f $(allobj) $(BDIR)/$(name)
+	rm -f $(pcppobj) $(BDIR)/$(name)
