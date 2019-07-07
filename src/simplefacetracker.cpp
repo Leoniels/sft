@@ -45,7 +45,7 @@ const String about =
 	"Easy facedetection v1\n"
 	"This program is a facetracker concept implemented using haarcascades";
 
-Ptr<CLAHE> clahe = createCLAHE();	// Gray range equalizer
+Ptr<CLAHE> clahe = createCLAHE(5.0);// Gray range equalizer
 CascadeClassifier faceCascade;		// Face haarclassifier
 bool searchEyes = false;			// Track eyes
 CascadeClassifier eyesCascade;		// Eyes haarclassifier
@@ -68,7 +68,7 @@ int main(int argc, char** argv){
 	size_t nFrames = 0;	// Number of frames readed on every iteration.
 	int64 t0 = cv::getTickCount();	// Ticks at the begining of execution
 	int64 processingTime = 0;	// Proccesing time used in detection
-	// While the video source has frames and the user don't hit ESC
+	// While the video source has frames and the user doesn't hit ESC
 	while (capture.read(frame) && !(waitKey(1) == 27/*ESC*/)){
 		// Check frame integrity
 		if (frame.empty()){
@@ -254,7 +254,7 @@ void trackAndDraw(Mat frame){
 	// Detect faces on the frame and draw their location 
 	vector<Rect> faces, eyes, noses;
 	Rect ROINose, ROIEyes;
-	faceCascade.detectMultiScale(grayFrame, faces, 1.2,	3, 0, Size(100, 150),
+	faceCascade.detectMultiScale(grayFrame, faces, 1.25,	3, 0, Size(100, 150),
 									Size(300, 450));
 	for (size_t i = 0; i < faces.size(); i++){
 		rectangle(frame, faces[i], Scalar(255, 0, 0));
@@ -267,7 +267,7 @@ void trackAndDraw(Mat frame){
 			rectangle(frame, ROINose, Scalar(0, 0, 255));
 			Mat frameROI = grayFrame(ROINose);
 
-			noseCascade.detectMultiScale(frameROI, noses, 1.2, 2, 0,
+			noseCascade.detectMultiScale(frameROI, noses, 1.1, 2, 0,
 											Size(35, 30), Size(90, 80));
 			for (size_t j = 0; j < noses.size(); j++){
 				// Use the ROINose as reference for location and dimension
@@ -285,7 +285,7 @@ void trackAndDraw(Mat frame){
 			rectangle(frame, ROIEyes, Scalar(0, 125, 125));
 			Mat frameROI = grayFrame(ROIEyes);
 
-			eyesCascade.detectMultiScale(frameROI, eyes, 1.2, 1, 0,
+			eyesCascade.detectMultiScale(frameROI, eyes, 1.075, 1, 0,
 											Size(25, 20), Size(70, 50));
 			for (size_t j = 0; j < eyes.size(); j++){
 				Point p1(ROIEyes.x + eyes[j].x, ROIEyes.y + eyes[j].y);
@@ -299,13 +299,15 @@ void trackAndDraw(Mat frame){
 	// Write features locations to stdout if detected
 	if (noseLoc || eyesLoc){
 		if (eyesLoc){
-			if(eyes.size() >= 2){
+			if(eyes.size() >= 1){
 				short x = ((ROIEyes.x + eyes[0].x) * 2 + eyes[0].width)/2;
 				short y = ((ROIEyes.y + eyes[0].y) * 2 + eyes[0].height)/2;
 				cout << x << ", " << y;
-				x = ((ROIEyes.x + eyes[1].x)*2 + eyes[1].width)/2;
-				y = ((ROIEyes.y + eyes[1].y)*2 + eyes[1].height)/2;
-				cout << ", " << x << ", " << y;
+				if(eyes.size() >= 2){
+					x = ((ROIEyes.x + eyes[1].x)*2 + eyes[1].width)/2;
+					y = ((ROIEyes.y + eyes[1].y)*2 + eyes[1].height)/2;
+					cout << ", " << x << ", " << y;
+				}
 			}else
 				cout << "-1, -1, -1, -1";
 		}
