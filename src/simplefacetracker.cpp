@@ -45,7 +45,7 @@ const String about =
 	"Easy facedetection v1\n"
 	"This program is a facetracker concept implemented using haarcascades";
 
-Ptr<CLAHE> clahe = createCLAHE(5.0);// Gray range equalizer
+Ptr<CLAHE> clahe = createCLAHE(2.0);// Gray range equalizer
 CascadeClassifier faceCascade;		// Face haarclassifier
 bool searchEyes = false;			// Track eyes
 CascadeClassifier eyesCascade;		// Eyes haarclassifier
@@ -76,6 +76,7 @@ int main(int argc, char** argv){
 			return 1;
 		}
 
+		// Print execution statistics if nose/eyes location is not required
 		nFrames++;
 		if (!(noseLoc || eyesLoc) && nFrames % 30 == 0)
 			printExecStatistics(nFrames, processingTime, &t0);
@@ -254,7 +255,7 @@ void trackAndDraw(Mat frame){
 	// Detect faces on the frame and draw their location 
 	vector<Rect> faces, eyes, noses;
 	Rect ROINose, ROIEyes;
-	faceCascade.detectMultiScale(grayFrame, faces, 1.25,	3, 0, Size(100, 150),
+	faceCascade.detectMultiScale(grayFrame, faces, 1.2,	2, 0, Size(100, 150),
 									Size(300, 450));
 	for (size_t i = 0; i < faces.size(); i++){
 		rectangle(frame, faces[i], Scalar(255, 0, 0));
@@ -268,7 +269,7 @@ void trackAndDraw(Mat frame){
 			Mat frameROI = grayFrame(ROINose);
 
 			noseCascade.detectMultiScale(frameROI, noses, 1.1, 2, 0,
-											Size(35, 30), Size(90, 80));
+											Size(20, 15), Size(90, 80));
 			for (size_t j = 0; j < noses.size(); j++){
 				// Use the ROINose as reference for location and dimension
 				Point p1(ROINose.x + noses[j].x, ROINose.y + noses[j].y);
@@ -286,7 +287,7 @@ void trackAndDraw(Mat frame){
 			Mat frameROI = grayFrame(ROIEyes);
 
 			eyesCascade.detectMultiScale(frameROI, eyes, 1.075, 1, 0,
-											Size(25, 20), Size(70, 50));
+											Size(25, 10), Size(70, 50));
 			for (size_t j = 0; j < eyes.size(); j++){
 				Point p1(ROIEyes.x + eyes[j].x, ROIEyes.y + eyes[j].y);
 				Point p2(ROIEyes.x + eyes[j].x + eyes[j].width,
