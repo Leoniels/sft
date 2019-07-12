@@ -1,12 +1,22 @@
-import sys
-import math as mt
-import ast
-import matplotlib.patches as mpatches
+#!/usr/bin/env python3
+#Script based on another from Alejandro Méndez Fernández and Leonardo Niels Pardi
+#Author: Leonardo Niels Pardi
+import argparse, ast    # Parse arguments and read files
+import math as mt       # Math stuff
+import matplotlib.patches as mpatches # Dem charts
 import matplotlib.pyplot as plt
-import numpy as np
+import numpy as np      # Arrays
 
-frames = 1200
 
+# Argument options
+ap = argparse.ArgumentParser()
+ap.add_argument("-r", "--reference", required=True, help="File with reference points")
+ap.add_argument("-s", "--simpleft", required=True, help="File with simplefacetracker's points")
+ap.add_argument("-d", "--saftdef", required=True, help="File with default saragih-facetracker's points")
+ap.add_argument("-c", "--saftcus", required=True, help="File with custom saragih-facetracker's points")
+
+
+# Square mean error
 def ecm(sample):
     sum = 0
     for i in sample:
@@ -14,7 +24,9 @@ def ecm(sample):
     
     return sum / len(sample)
 
-def distance(reftrace, trace):
+
+# Distance between points of reference and tracker points
+def calcDistances(reftrace, trace):
     distances = []
     for i in range(0, len(trace)):
         xdiff = reftrace[i][0] - trace[i][0]
@@ -22,42 +34,54 @@ def distance(reftrace, trace):
         distances.append(mt.sqrt(xdiff**2+ydiff**2))
     return distances
 
-def routing(traces=[]):
-    distance1 = distance(traces[0], traces[1])
-    distance2 = distance(traces[0], traces[2])
-    err = []
-    err += [round(ecm(distance1), 2)]
-    err += [round(ecm(distance2), 2)]
 
-    x = np.arange(0, len(traces[0]))
+# Get distances between reference and traces, calc sme and draw the chart
+def routing(setstraces=[]):
+    setsdistances = []
+    setsdistances.append(calcDistances(setstraces[0], setstraces[1]))
+    setsdistances.append(calcDistances(setstraces[0], setstraces[2]))
+    setsdistances.append(calcDistances(setstraces[0], setstraces[3]))
+
+    errors = []
+    errors += [round(ecm(setsdistances[0]), 3)]
+    errors += [round(ecm(setsdistances[1]), 3)]
+    errors += [round(ecm(setsdistances[2]), 3)]
+
+    x = np.arange(0, len(setstraces[0]))
 
     plt.xlabel('Frame')
     plt.ylabel('Error')
-    plt.title('Controller Samples')
-    red_patch = mpatches.Patch(color='red', label='Trace1')
-    blue_patch = mpatches.Patch(color='blue', label='Trace2')
-    plt.legend(handles=[red_patch, blue_patch])
-    plt.text(20, 15, r'ECM=' + str(err[0]), color='red')
-    plt.text(20, 13, r'ECM=' + str(err[1]), color='blue')
-    plt.plot(x, distance1, 'r', x, distance2, 'b')
+    plt.title('Test de Precision')
+    red_patch = mpatches.Patch(color='red', label='simple ft')
+    blue_patch = mpatches.Patch(color='blue', label='default saragih ft')
+    green_patch = mpatches.Patch(color='green', label='custom saragih ft')
+    plt.legend(handles=[red_patch, blue_patch, green_patch])
+    plt.text(20, 15, r'ECM=' + str(errors[0]), color='red')
+    plt.text(20, 13, r'ECM=' + str(errors[1]), color='blue')
+    plt.text(20, 11, r'ECM=' + str(errors[2]), color='green')
+    plt.plot(x, setsdistances[0], 'r', x, setsdistances[1], 'b', x, setsdistances[2], 'g')
     plt.show()
 
-    print(err[0])
    
-def main():
-    traces = []
-    for i in range(1, len(sys.argv)):
-        trace = []
-        with open(sys.argv[i]) as file:
-            for line in file:
-                trace.append(ast.literal_eval(line))
-        traces.append(trace)
+def main(args):
+    filelist =[]
+    filelist.append(args["reference"])
+    filelist.append(args["simpleft"])
+    filelist.append(args["saftdef"])
+    filelist.append(args["saftcus"])
 
-    routing(traces)
+    setstraces = []
+    for tracefile in filelist:
+        traces = []
+        with open(tracefile) as file:
+            for line in file:
+                traces.append(ast.literal_eval(line))
+        setstraces.append(traces)
+
+    routing(setstraces)
     
 
 if __name__ == '__main__':
-    if len(sys.argv) >= 3:
-        main()
-    else:
-        print("Usage: plot.py <ref_file> <file_1> [<file_2>]")
+    args = vars(ap.parse_args())
+    main(args)
+

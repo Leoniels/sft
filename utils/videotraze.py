@@ -70,7 +70,6 @@ while retval:
     fridx += frjump
     videocap.set(cv2.CAP_PROP_POS_FRAMES, fridx-1)
     retval, frame = videocap.read()
-print(fridx)
 
 # frame index jump overshooted
 if fridx > frcount:
