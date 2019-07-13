@@ -47,18 +47,23 @@ def routing(setstraces=[]):
     errors += [round(ecm(setsdistances[1]), 3)]
     errors += [round(ecm(setsdistances[2]), 3)]
 
+    top = max([max(setsdistances[0]), max(setsdistances[1]), max(setsdistances[2])])
+    step = top / 12
+
     x = np.arange(0, len(setstraces[0]))
 
+    font = {'weight' : 'bold', 'size' : 22}
+    plt.rc('font', **font)
     plt.xlabel('Frame')
     plt.ylabel('Error')
-    plt.title('Test de Precision')
+    plt.title('Test de Precisión')
     red_patch = mpatches.Patch(color='red', label='simple ft')
     blue_patch = mpatches.Patch(color='blue', label='default saragih ft')
     green_patch = mpatches.Patch(color='green', label='custom saragih ft')
     plt.legend(handles=[red_patch, blue_patch, green_patch])
-    plt.text(20, 15, r'ECM=' + str(errors[0]), color='red')
-    plt.text(20, 13, r'ECM=' + str(errors[1]), color='blue')
-    plt.text(20, 11, r'ECM=' + str(errors[2]), color='green')
+    plt.text(0, int(top-step), r'ECM=' + str(errors[0]), color='red')
+    plt.text(0, int(top-step*2), r'ECM=' + str(errors[1]), color='blue')
+    plt.text(0, int(top-step*3), r'ECM=' + str(errors[2]), color='green')
     plt.plot(x, setsdistances[0], 'r', x, setsdistances[1], 'b', x, setsdistances[2], 'g')
     plt.show()
 
