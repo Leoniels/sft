@@ -1,5 +1,3 @@
-bin/*
-obj/*
 /*.avi
-videos/craplight/*
+videos/*
 *.png
