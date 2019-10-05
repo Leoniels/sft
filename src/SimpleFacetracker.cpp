@@ -16,6 +16,104 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "SimpleFacetracker.hpp"
+
+using namespace cv;
+using namespace std;
+
+SimpleFacetracker::SimpleFacetracker()
+	:
+		searchEyes(false), searchNose(false),
+		writeVideo(false), gray(false),
+		noseLoc(false), eyesLoc(false)
+{}
+SimpleFacetracker::SimpleFacetracker(float claheClipLimit)
+	:
+		searchEyes(false), searchNose(false),
+		writeVideo(false), gray(false),
+		noseLoc(false), eyesLoc(false)
+{
+	clahe = createCLAHE(claheClipLimit);
+}
+SimpleFacetracker::~SimpleFacetracker(){}
+
+int SimpleFacetracker::initFaceCascade(String cascadeFile){
+	if (!faceCascade.load(cascadeFile)){
+		cerr << "ERROR::CASCADE::FAILURE_LOADING_FACE_CASCADE_FILE" << endl;
+		return 1;
+	}
+	return 0;
+}
+
+int SimpleFacetracker::initEyesCascade(String cascadeFile){
+	if (!eyesCascade.load(cascadeFile)){
+		cerr << "ERROR::CASCADE::FAILURE_LOADING_EYES_CASCADE_FILE" << endl;
+		return 1;
+	}
+	searchEyes = true;
+	return 0;
+}
+
+int SimpleFacetracker::initNoseCascade(String cascadeFile){
+	if (!noseCascade.load(cascadeFile)){
+		cerr << "ERROR::CASCADE::FAILURE_LOADING_NOSE_CASCADE_FILE" << endl;
+		return 1;
+	}
+	searchNose = true;
+	return 0;
+}
+
+int SimpleFacetracker::videoSource(const String name){
+	capture.open(name);
+	if (!capture.isOpened()){
+		cerr << "ERROR::VIDEO::FAILURE_OPENING_VIDEO_STREAM_INPUT" << endl;
+		return 1;
+	}
+	return 0;
+}
+
+int SimpleFacetracker::cameraSource(int camera){
+	capture.open(camera);
+	if (!capture.isOpened()){
+		cerr << "ERROR::VIDEO::FAILURE_OPENING_VIDEO_STREAM_INPUT" << endl;
+		return 1;
+	}
+	return 0;
+}
+
+int SimpleFacetracker::videoOutput(const String name){
+	// Check video input status
+	if (!capture.isOpenend()){
+		cerr << "ERROR:VIDEO::VIDEO_INPUT_NOT_OPENED" << endl;
+		return 1;
+	}
+
+	name += ".avi";
+	int codec = VideoWriter::fourcc('X', 'V', 'I', 'D'); // mp4 encoding
+
+	// Get input video stream info
+	int srcFrameWidth, srcFrameHeight, srcfps;
+	srcFrameWidth = static_cast<int>(capture.get(CAP_PROP_FRAME_WIDTH));
+	srcFrameHeight = static_cast<int>(capture.get(CAP_PROP_FRAME_HEIGHT));
+	srcfps = static_cast<int>(capture.get(CAP_PROP_FPS));
+	outputVideo.open(name, codec, srcfps,
+							Size(srcFrameWidth, srcFrameHeight), true);
+
+	// Check video output status
+	if (!outputVideo.isOpened()){
+			cerr <<
+			"ERROR:VIDEO::FAILURE_OPENING_VIDEO_STREAM_OUTPUT"
+			<< endl;
+			return 2;
+	}
+
+	return 0;
+}
+
+/*****************************************************************************/
+/*****************************************************************************/
+/*****************************************************************************/
+/*****************************************************************************/
 #include <opencv2/core.hpp>
 #include <opencv2/videoio.hpp>
 #include <opencv2/highgui.hpp>
