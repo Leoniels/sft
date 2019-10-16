@@ -54,19 +54,36 @@ class SimpleFacetracker{
 
 		void faceLocation(float &x, &y);
 
+		void release();
+
 	private:
-		Ptr<CLAHE> clahe;// Gray range equalizer
-		CascadeClassifier faceCascade;		// Face haarclassifier
-		CascadeClassifier eyesCascade;		// Eyes haarclassifier
-		CascadeClassifier noseCascade;		// Nose cascade
-		bool searchEyes;			// Track eyes
-		bool searchNose;			// Track nose
-		VideoCapture capture;				// Video where the face is tracked
-		VideoWriter outputVideo;			// Video output stream
-		bool writeVideo;			// Write output video
-		bool gray;					// Output gray video instead of coloured
-		bool noseLoc;				// Output nose location
-		bool eyesLoc;				// Output eyes location
-		ofstream proctimefile;				// File stream to store process time
+		Ptr<CLAHE> clahe;				// Gray range equalizer
+
+		CascadeClassifier faceCascade;	// Face haarclassifier
+		CascadeClassifier eyesCascade;	// Eyes haarclassifier
+		CascadeClassifier noseCascade;	// Nose cascade
+
+		bool searchEyes;				// Track eyes
+		bool searchNose;				// Track nose
+
+		VideoCapture capture;			// Video where the face is tracked
+		VideoWriter outputVideo;		// Video output stream
+		bool writeVideo;				// Write output video
+		bool gray;						// Output gray scale video
+
+		ofstream proctimefile;			// File stream to store process time
+
+		bool done;
+
+		Mat frame;						// Frame to read from video source
+		size_t nFrames;					// Number of frames read
+
+		double avgFPS;
+		double avgTimePerFr;
+		double processingTime;
+
+		Rect face;
+		Rect eyes[2];
+		Rect nose;
 }
 

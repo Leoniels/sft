@@ -17,6 +17,7 @@
  */
 
 #include <opencv2/core.hpp>
+#include "SimpleFacetracker.hpp"
 
 #include <iostream>
 #include <string>
@@ -63,23 +64,24 @@ int main(int argc, char** argv){
 	SimpleFacetracker sft = new SimpleFacetracker(2.0);
 	sft.initFaceCascade(faceCascade);
 	if (!eyesCascade.empty())
-		sft.initEyesCascade(eyesCascade);
+		sft.initEyesCascade(eyesCascade) ? return 1 : continue;
 	if (!noseCascade.empty())
-		sft.initNoseCascade(noseCascade);
+		sft.initNoseCascade(noseCascade) ? return 2 : continue;
 	if (!videoInput.empty()){
 		const String name = videoInput;
-		sft.videoSource(name);
+		sft.videoSource(name) ? return 3 : continue;
 	}else 
-		sft.cameraSource(stoi(cameraInput));
+		sft.cameraSource(stoi(cameraInput)) ? return 4 : continue;
 	if (!videoOutput.empty()){
 		const String name = videoOutput;
-		sft.writeVideo(name);
+		sft.writeVideo(name) ? return 5 : continue;
 	}
 	if (gray)
 		sft.outputGray();
 	if (procTime)
 		sft.writeProcessingTime();
 
+	// Main loop
 	float x, y;
 	while(!sft.finished){
 		sft.track();

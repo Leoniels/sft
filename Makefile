@@ -8,7 +8,7 @@ SDIR = src
 BDIR = bin
 
 ###	Compiler settings
-CXXFLAGS = -I$(IDIR)
+CXXFLAGS = -I$(IDIR) -I./src
 LDFLAGS = -lopencv_core -lopencv_videoio -lopencv_highgui -lopencv_imgproc -lopencv_objdetect
 
 ###	Sources

@@ -25,13 +25,15 @@ SimpleFacetracker::SimpleFacetracker()
 	:
 		searchEyes(false), searchNose(false),
 		writeVideo(false), gray(false),
-		noseLoc(false), eyesLoc(false)
-{}
+		done(false);
+{
+	clahe = createCLAHE(2.0);
+}
 SimpleFacetracker::SimpleFacetracker(float claheClipLimit)
 	:
 		searchEyes(false), searchNose(false),
 		writeVideo(false), gray(false),
-		noseLoc(false), eyesLoc(false)
+		done(false)
 {
 	clahe = createCLAHE(claheClipLimit);
 }
@@ -108,6 +110,99 @@ int SimpleFacetracker::videoOutput(const String name){
 	}
 
 	return 0;
+}
+
+void SimpleFacetracker::outputGray(){
+	gray = true;
+}
+
+void SimpleFacetracker::writeProcessingTime(){
+	proctimefile.open("proctime", ios::trunc);
+}
+
+bool SimpleFacetracker::finished(){
+	return done;
+}
+
+int SimpleFacetracker::track(){
+	int64 processingTime = 0;	// Proccesing time used in detection
+	// The video source has frames and the user doesn't hit ESC
+	if (capture.read(frame) && !(waitKey(1) == 27/*ESC*/)){
+		// Check frame integrity
+		if (frame.empty()){
+			cerr << "ERROR::FRAME::EMPTY_FRAME_READED" << endl;
+			return 1;
+		}
+
+		nFrames++;
+
+		// Measure time used in detecting faces and noses
+		int64 tp0 = getTickCount();
+		// Convert the frame to grayscale
+		Mat grayFrame, frameROI;
+		cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
+		clahe->apply(grayFrame, grayFrame);
+
+		// Set the output frame as gray too
+		if (gray)
+			cvtColor(grayFrame, frame, COLOR_GRAY2BGR);
+
+		// Detect faces on the frame and draw their location 
+		vector<Rect> faces, eyesv, noses;
+		faceCascade.detectMultiScale(grayFrame, faces, 1.2,	2, 0, Size(100, 150),
+									 Size(300, 450));
+		face = faces.at(0);
+		if (searchNose){
+			// Use a 3/4 frame size as Region Of Interest to search the nose
+			Rect ROINose = Rect(Point(face.x+face.width*0.2,
+									  face.y+face.height*0.35),
+	 						    Size(face.width*0.6, face.height*0.5));
+			frameROI = grayFrame(ROINose);
+
+			noseCascade.detectMultiScale(frameROI, noses, 1.1, 2, 0,
+										 Size(20, 15), Size(90, 80));
+			nose = noses.at(0);
+			// Use the ROINose as reference for location and dimension
+			Point p1(ROINose.x + noses[j].x, ROINose.y + noses[j].y);
+			Point p2(ROINose.x + noses[j].x + noses[j].width,
+					 ROINose.y + noses[j].y + noses[j].height);
+			nose = Rect(p1, p2);
+		}// if
+
+		// Same as nose for eyes
+		if (searchEyes){
+			Rect ROIEyes = Rect(Point(face.x, faces.y),
+								Size(face.width, face.height/1.7));
+			frameROI = grayFrame(ROIEyes);
+
+			eyesCascade.detectMultiScale(frameROI, eyesv, 1.075, 1, 0,
+										 Size(25, 10), Size(70, 50));
+			eyes[0] = eyesv.at(0);
+			eyes[1] = eyesv.at(1);
+			for (unsigned short i = 1; i < 2; i++){
+				Point p1(ROIEyes.x + eyes[i].x, ROIEyes.y + eyes[i].y);
+				Point p2(ROIEyes.x + eyes[i].x + eyes[i].width,
+						 ROIEyes.y + eyes[i].y + eyes[i].height);
+				eyes[i] = Rect(p1, p2);
+			}// for
+		}// if
+		processingTime = getTickCount() - tp0;
+
+		// Write proccessing time in file
+		if (proctimefile.is_open())
+			proctimefile <<
+			format("%.4f",
+					static_cast<double>(processingTime) * 1000.0f /
+					getTickFrequency())
+			<< endl;
+
+		// Write frame on video output
+		if (writeVideo)
+			outputVideo << frame;
+		// Show frame on window in realtime
+		imshow("OpenCV Facedetection", frame);
+	}else
+		done = true;
 }
 
 /*****************************************************************************/
