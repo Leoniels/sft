@@ -51,8 +51,11 @@ class SimpleFacetracker{
 		bool finished();
 
 		void track();
+		void drawLocations();
 
-		void faceLocation(float &x, &y);
+		void faceLocation(Rect &face);
+		void noseLocation(Rect &nose);
+		void eyesLocation(Rect &eyes);
 
 		void release();
 
@@ -85,5 +88,8 @@ class SimpleFacetracker{
 		Rect face;
 		Rect eyes[2];
 		Rect nose;
+	
+	private:
+		void writeFrame();
 }
 

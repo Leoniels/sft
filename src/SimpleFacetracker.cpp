@@ -125,7 +125,6 @@ bool SimpleFacetracker::finished(){
 }
 
 int SimpleFacetracker::track(){
-	int64 processingTime = 0;	// Proccesing time used in detection
 	// The video source has frames and the user doesn't hit ESC
 	if (capture.read(frame) && !(waitKey(1) == 27/*ESC*/)){
 		// Check frame integrity
@@ -138,14 +137,11 @@ int SimpleFacetracker::track(){
 
 		// Measure time used in detecting faces and noses
 		int64 tp0 = getTickCount();
-		// Convert the frame to grayscale
+		// Surfaces to operate with
 		Mat grayFrame, frameROI;
+		// Convert the frame to grayscale
 		cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
 		clahe->apply(grayFrame, grayFrame);
-
-		// Set the output frame as gray too
-		if (gray)
-			cvtColor(grayFrame, frame, COLOR_GRAY2BGR);
 
 		// Detect faces on the frame and draw their location 
 		vector<Rect> faces, eyesv, noses;
@@ -186,7 +182,7 @@ int SimpleFacetracker::track(){
 				eyes[i] = Rect(p1, p2);
 			}// for
 		}// if
-		processingTime = getTickCount() - tp0;
+		int64 processingTime = getTickCount() - tp0;
 
 		// Write proccessing time in file
 		if (proctimefile.is_open())
@@ -195,14 +191,60 @@ int SimpleFacetracker::track(){
 					static_cast<double>(processingTime) * 1000.0f /
 					getTickFrequency())
 			<< endl;
-
+		
 		// Write frame on video output
 		if (writeVideo)
-			outputVideo << frame;
-		// Show frame on window in realtime
-		imshow("OpenCV Facedetection", frame);
+			writeFrame();
 	}else
 		done = true;
+}
+
+void SimpleFacetracker::drawLocations(){
+		// Set the output frame as gray too
+		if (gray)
+			cvtColor(frame, frame, COLOR_BGR2GRAY);
+
+		rectangle(frame, face, Scalar(255, 0, 0));
+		rectangle(frame, nose, Scalar(0, 255, 0));
+		rectangle(frame, eyes, Scalar(0, 0, 255));
+
+		// Show frame on window in realtime
+		imshow("OpenCV Facedetection", frame);
+}
+
+void SimpleFacetracker::writeFrame(){
+		// Set the output frame as gray too
+		if (gray)
+			cvtColor(frame, frame, COLOR_BGR2GRAY);
+
+		rectangle(frame, face, Scalar(255, 0, 0));
+		rectangle(frame, nose, Scalar(0, 255, 0));
+		rectangle(frame, eyes, Scalar(0, 0, 255));
+
+		// Write frame on output video file
+		outputVideo << frame;
+}
+
+void SimpleFacetracker::faceLocation(Rect &face){
+	face = this.face;
+}
+
+void SimpleFacetracker::noseLocation(Rect &nose){
+	nose = this.nose;
+}
+
+void SimpleFacetracker::eyesLocation(Rect &eyes){
+	eyes = this.eyes;
+}
+
+void SimpleFacetracker::release(){
+	// Release resources
+	if (proctimefile.is_open())
+		proctimefile.close();
+	if (capture.isOpened())
+		capture.release();
+	if (outputVideo.isOpened())
+		outputVideo.release();
 }
 
 /*****************************************************************************/

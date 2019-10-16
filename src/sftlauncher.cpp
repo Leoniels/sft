@@ -16,11 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <opencv2/core.hpp>
-#include "SimpleFacetracker.hpp"
-
 #include <iostream>
 #include <string>
+
+#include <opencv2/core.hpp>
+#include "SimpleFacetracker.hpp"
 
 using namespace cv;
 using namespace std;
@@ -51,11 +51,10 @@ const String about =
 String faceCascade, eyesCascade, noseCascade;	// haarclassifier
 String videoInput, cameraInput, videoOutput;	// video source and output
 bool gray = false;				// Output gray video instead of coloured
-bool noseLocation = false, eyesLocation = false;	// output location
-bool procTime = false;	// Write processing time
+bool noseLocation = false, eyesLocation = false;// output location
+bool procTime = false;							// Write processing time
 
 int main(int argc, char** argv){
-
 	// Parse command line arguments and init global variables 
 	if (readArguments(argc, argv) != 0)
 		return 1;
@@ -63,6 +62,7 @@ int main(int argc, char** argv){
 	// Init facetracker
 	SimpleFacetracker sft = new SimpleFacetracker(2.0);
 	sft.initFaceCascade(faceCascade);
+	// Init optional facetracker components
 	if (!eyesCascade.empty())
 		sft.initEyesCascade(eyesCascade) ? return 1 : continue;
 	if (!noseCascade.empty())
@@ -82,13 +82,15 @@ int main(int argc, char** argv){
 		sft.writeProcessingTime();
 
 	// Main loop
-	float x, y;
+	Rect face;
 	while(!sft.finished){
 		sft.track();
-		sft.faceLocation(x, y);
-		cout << "f: (" << x << ", " << y << ")" << endl;
+		sft.faceLocation(face);
+		cout << "f: " << face << endl;
+		sft.drawLocations();
 	}
 
+	// Release resources
 	sft.release();
 
 	return 0;
