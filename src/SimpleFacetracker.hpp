@@ -64,7 +64,7 @@ class SimpleFacetracker{
 		/* Outputs objects detected on the last frame captured */
 		void drawLocations();
 
-		/* Outputs locations of detected objects */
+		/* Outputs locations of detected objects in normalized range (-1, 1) */
 		void faceLocation(float &x1, float &y1, float &x2, float &y2);
 		void noseLocation(float &x1, float &y1, float &x2, float &y2);
 		void eyesLocation(float &x11, float &y11, float &x21, float &y21,

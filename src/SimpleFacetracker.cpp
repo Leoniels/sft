@@ -265,30 +265,30 @@ void SimpleFacetracker::writeFrame(){
 /* Outputs locations of detected objects */
 void SimpleFacetracker::faceLocation(float &x1, float &y1, float &x2, float &y2)
 {
-	x1 = (face.x - srcFrameWidth / 2.0f) / srcFrameWidth;
-	x2 = ((face.x + face.width) - srcFrameWidth / 2.0f) / srcFrameWidth;
-	y1 = (face.y - srcFrameHeight / 2.0f) / srcFrameHeight;
-	y2 = ((face.y + face.height) - srcFrameHeight / 2.0f) / srcFrameHeight;
+	x1 = (face.x - srcFrameWidth / 2.0f) / srcFrameWidth * 2.0f;
+	x2 = ((face.x + face.width) - srcFrameWidth / 2.0f) / srcFrameWidth * 2.0f;
+	y1 = (face.y - srcFrameHeight / 2.0f) / srcFrameHeight * 2.0f;
+	y2 = ((face.y + face.height) - srcFrameHeight / 2.0f) / srcFrameHeight * 2.0f;
 }
 void SimpleFacetracker::noseLocation(float &x1, float &y1, float &x2, float &y2)
 {
-	x1 = (nose.x - srcFrameWidth / 2.0f) / srcFrameWidth;
-	x2 = ((nose.x + nose.width) - srcFrameWidth / 2.0f) / srcFrameWidth;
-	y1 = (nose.y - srcFrameHeight / 2.0f) / srcFrameHeight;
-	y2 = ((nose.y + nose.height) - srcFrameHeight / 2.0f) / srcFrameHeight;
+	x1 = (nose.x - srcFrameWidth / 2.0f) / srcFrameWidth * 2.0f;
+	x2 = ((nose.x + nose.width) - srcFrameWidth / 2.0f) / srcFrameWidth * 2.0f;
+	y1 = (nose.y - srcFrameHeight / 2.0f) / srcFrameHeight * 2.0f;
+	y2 = ((nose.y + nose.height) - srcFrameHeight / 2.0f) / srcFrameHeight * 2.0f;
 }
 void SimpleFacetracker::eyesLocation(float &x11, float &y11,
 									 float &x21, float &y21,
 									 float &x12, float &y12,
 									 float &x22, float &y22){
-	x11 = (eyes[0].x - srcFrameWidth / 2.0f) / srcFrameWidth;
-	x21 = ((eyes[0].x + eyes[0].width) - srcFrameWidth / 2.0f) / srcFrameWidth;
-	y11 = (eyes[0].y - srcFrameHeight / 2.0f) / srcFrameHeight;
-	y21 = ((eyes[0].y + eyes[0].height) - srcFrameHeight / 2.0f) / srcFrameHeight;
-	x12 = (eyes[1].x - srcFrameWidth / 2.0f) / srcFrameWidth;
-	x22 = ((eyes[1].x + eyes[1].width) - srcFrameWidth / 2.0f) / srcFrameWidth;
-	y12 = (eyes[1].y - srcFrameHeight / 2.0f) / srcFrameHeight;
-	y22 = ((eyes[1].y + eyes[1].height) - srcFrameHeight / 2.0f) / srcFrameHeight;
+	x11 = (eyes[0].x - srcFrameWidth / 2.0f) / srcFrameWidth * 2.0f;
+	x21 = ((eyes[0].x + eyes[0].width) - srcFrameWidth / 2.0f) / srcFrameWidth * 2.0f;
+	y11 = (eyes[0].y - srcFrameHeight / 2.0f) / srcFrameHeight * 2.0f;
+	y21 = ((eyes[0].y + eyes[0].height) - srcFrameHeight / 2.0f) / srcFrameHeight * 2.0f;
+	x12 = (eyes[1].x - srcFrameWidth / 2.0f) / srcFrameWidth * 2.0f;
+	x22 = ((eyes[1].x + eyes[1].width) - srcFrameWidth / 2.0f) / srcFrameWidth * 2.0f;
+	y12 = (eyes[1].y - srcFrameHeight / 2.0f) / srcFrameHeight * 2.0f;
+	y22 = ((eyes[1].y + eyes[1].height) - srcFrameHeight / 2.0f) / srcFrameHeight * 2.0f;
 }
 
 /* Release resources */
