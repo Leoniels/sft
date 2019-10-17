@@ -87,13 +87,29 @@ int main(int argc, char** argv){
 		sft.writeProcessingTime();
 
 	// Main loop
-	float x1, y1, x2, y2;
+	float x1, y1, x2, y2, x12, y12, x22, y22;
+	sft.track();
 	while(!sft.finished()){
-		sft.track();
-		sft.faceLocation(x1, y1, x2, y2);
-		cout << "f: ((" << x1 << ", " << y1 << "), (" <<
-			x2 << ", " << y2 << "))" << endl;
 		sft.drawLocations();
+
+		sft.faceLocation(x1, y1, x2, y2);
+		cout << " f: (" << format("(%1.3f,", x1) << format(" %1.3f), ", y1) <<
+			format("(%1.3f,", x2) << format(" %1.3f)", y2) << ")";
+		sft.noseLocation(x1, y1, x2, y2);
+
+		if (noseLocation)
+			cout << " | n: (" << format("(%1.3f,", x1) << format(" %1.3f), ", y1) <<
+				format("(%1.3f,", x2) << format(" %1.3f)", y2) << ")";
+		cout << endl;
+
+		if (eyesLocation){
+			sft.eyesLocation(x1, y1, x2, y2, x12, y12, x22, y22);
+			cout << "e1: (" << format("(%1.3f,", x1) << format(" %1.3f), ", y1) <<
+				format("(%1.3f,", x2) << format(" %1.3f)", y2) << ")";
+			cout << " | e2: (" << format("(%1.3f,", x12) << format(" %1.3f), ", y12) <<
+				format("(%1.3f,", x22) << format(" %1.3f)", y22) << ")" << endl;
+		}
+		sft.track();
 	}
 
 	// Release resources

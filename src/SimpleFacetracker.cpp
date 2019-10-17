@@ -81,6 +81,8 @@ int SimpleFacetracker::videoSource(const String name){
 		cerr << "ERROR::VIDEO::FAILURE_OPENING_VIDEO_STREAM_INPUT" << endl;
 		return 1;
 	}
+	srcFrameWidth = static_cast<int>(capture.get(CAP_PROP_FRAME_WIDTH));
+	srcFrameHeight = static_cast<int>(capture.get(CAP_PROP_FRAME_HEIGHT));
 	return 0;
 }
 int SimpleFacetracker::cameraSource(int camera){
@@ -89,6 +91,8 @@ int SimpleFacetracker::cameraSource(int camera){
 		cerr << "ERROR::VIDEO::FAILURE_OPENING_VIDEO_STREAM_INPUT" << endl;
 		return 1;
 	}
+	srcFrameWidth = static_cast<int>(capture.get(CAP_PROP_FRAME_WIDTH));
+	srcFrameHeight = static_cast<int>(capture.get(CAP_PROP_FRAME_HEIGHT));
 	return 0;
 }
 int SimpleFacetracker::videoOutput(const String name){
@@ -104,11 +108,9 @@ int SimpleFacetracker::videoOutput(const String name){
 
 	// Get input video stream info
 	int srcfps;
-	srcFrameWidth = static_cast<int>(capture.get(CAP_PROP_FRAME_WIDTH));
-	srcFrameHeight = static_cast<int>(capture.get(CAP_PROP_FRAME_HEIGHT));
 	srcfps = static_cast<int>(capture.get(CAP_PROP_FPS));
-	outputVideo.open(name, codec, srcfps,
-							Size(srcFrameWidth, srcFrameHeight), true);
+	outputVideo.open(filename, codec, srcfps,
+					 Size(srcFrameWidth, srcFrameHeight), true);
 
 	// Check video output status
 	if (!outputVideo.isOpened()){
@@ -117,6 +119,8 @@ int SimpleFacetracker::videoOutput(const String name){
 			<< endl;
 			return 2;
 	}
+
+	writeVideo = true;
 
 	return 0;
 }
@@ -173,7 +177,7 @@ int SimpleFacetracker::track(){
 
 				noseCascade.detectMultiScale(frameROI, noses, 1.1, 2, 0,
 											 Size(20, 15), Size(90, 80));
-				if (!nose.empty()){
+				if (!noses.empty()){
 					nose = noses.at(0);
 					// Use the ROINose as reference for location and dimension
 					Point p1(ROINose.x + nose.x, ROINose.y + nose.y);
@@ -191,10 +195,10 @@ int SimpleFacetracker::track(){
 
 				eyesCascade.detectMultiScale(frameROI, eyesv, 1.075, 1, 0,
 											 Size(25, 10), Size(70, 50));
-				if (eyesv.size () >= 2){
+				if (eyesv.size() >= 2){
 					eyes[0] = eyesv.at(0);
 					eyes[1] = eyesv.at(1);
-					for (unsigned short i = 1; i < 2; i++){
+					for (unsigned short i = 0; i < 2; i++){
 						Point p1(ROIEyes.x + eyes[i].x, ROIEyes.y + eyes[i].y);
 						Point p2(ROIEyes.x + eyes[i].x + eyes[i].width,
 								 ROIEyes.y + eyes[i].y + eyes[i].height);
@@ -225,8 +229,11 @@ int SimpleFacetracker::track(){
 /* Outputs objects detected on the last frame captured */
 void SimpleFacetracker::drawLocations(){
 		// Set the output frame as gray too
-		if (gray)
-			cvtColor(frame, frame, COLOR_BGR2GRAY);
+		if (gray){
+			Mat grayFrame;
+			cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
+			cvtColor(grayFrame, frame, COLOR_GRAY2BGR);
+		}
 
 		rectangle(frame, face, Scalar(255, 0, 0));
 		rectangle(frame, nose, Scalar(0, 255, 0));
@@ -240,8 +247,11 @@ void SimpleFacetracker::drawLocations(){
 /* Writes the last frame with the objects detected on a video file */
 void SimpleFacetracker::writeFrame(){
 		// Set the output frame as gray too
-		if (gray)
-			cvtColor(frame, frame, COLOR_BGR2GRAY);
+		if (gray){
+			Mat grayFrame;
+			cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
+			cvtColor(grayFrame, frame, COLOR_GRAY2BGR);
+		}
 
 		rectangle(frame, face, Scalar(255, 0, 0));
 		rectangle(frame, nose, Scalar(0, 255, 0));
@@ -255,30 +265,30 @@ void SimpleFacetracker::writeFrame(){
 /* Outputs locations of detected objects */
 void SimpleFacetracker::faceLocation(float &x1, float &y1, float &x2, float &y2)
 {
-	x1 = (face.x - srcFrameWidth / 2) / srcFrameWidth;
-	x2 = ((face.x + face.width) - srcFrameWidth / 2) / srcFrameWidth;
-	y1 = (face.y - srcFrameHeight / 2) / srcFrameHeight;
-	y2 = ((face.y + face.height) - srcFrameHeight / 2) / srcFrameHeight;
+	x1 = (face.x - srcFrameWidth / 2.0f) / srcFrameWidth;
+	x2 = ((face.x + face.width) - srcFrameWidth / 2.0f) / srcFrameWidth;
+	y1 = (face.y - srcFrameHeight / 2.0f) / srcFrameHeight;
+	y2 = ((face.y + face.height) - srcFrameHeight / 2.0f) / srcFrameHeight;
 }
 void SimpleFacetracker::noseLocation(float &x1, float &y1, float &x2, float &y2)
 {
-	x1 = (nose.x - srcFrameWidth / 2) / srcFrameWidth;
-	x2 = ((nose.x + nose.width) - srcFrameWidth / 2) / srcFrameWidth;
-	y1 = (nose.y - srcFrameHeight / 2) / srcFrameHeight;
-	y2 = ((nose.y + nose.height) - srcFrameHeight / 2) / srcFrameHeight;
+	x1 = (nose.x - srcFrameWidth / 2.0f) / srcFrameWidth;
+	x2 = ((nose.x + nose.width) - srcFrameWidth / 2.0f) / srcFrameWidth;
+	y1 = (nose.y - srcFrameHeight / 2.0f) / srcFrameHeight;
+	y2 = ((nose.y + nose.height) - srcFrameHeight / 2.0f) / srcFrameHeight;
 }
 void SimpleFacetracker::eyesLocation(float &x11, float &y11,
 									 float &x21, float &y21,
 									 float &x12, float &y12,
 									 float &x22, float &y22){
-	x11 = (eyes[0].x - srcFrameWidth / 2) / srcFrameWidth;
-	x21 = ((eyes[0].x + eyes[0].width) - srcFrameWidth / 2) / srcFrameWidth;
-	y11 = (eyes[0].y - srcFrameHeight / 2) / srcFrameHeight;
-	y21 = ((eyes[0].y + eyes[0].height) - srcFrameHeight / 2) / srcFrameHeight;
-	x12 = (eyes[1].x - srcFrameWidth / 2) / srcFrameWidth;
-	x22 = ((eyes[1].x + eyes[1].width) - srcFrameWidth / 2) / srcFrameWidth;
-	y12 = (eyes[1].y - srcFrameHeight / 2) / srcFrameHeight;
-	y22 = ((eyes[1].y + eyes[1].height) - srcFrameHeight / 2) / srcFrameHeight;
+	x11 = (eyes[0].x - srcFrameWidth / 2.0f) / srcFrameWidth;
+	x21 = ((eyes[0].x + eyes[0].width) - srcFrameWidth / 2.0f) / srcFrameWidth;
+	y11 = (eyes[0].y - srcFrameHeight / 2.0f) / srcFrameHeight;
+	y21 = ((eyes[0].y + eyes[0].height) - srcFrameHeight / 2.0f) / srcFrameHeight;
+	x12 = (eyes[1].x - srcFrameWidth / 2.0f) / srcFrameWidth;
+	x22 = ((eyes[1].x + eyes[1].width) - srcFrameWidth / 2.0f) / srcFrameWidth;
+	y12 = (eyes[1].y - srcFrameHeight / 2.0f) / srcFrameHeight;
+	y22 = ((eyes[1].y + eyes[1].height) - srcFrameHeight / 2.0f) / srcFrameHeight;
 }
 
 /* Release resources */

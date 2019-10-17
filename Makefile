@@ -1,3 +1,4 @@
+#TODO: mkdir src bin obj
 ###	Name of the final executable
 name = sft 
 

@@ -1,5 +1,6 @@
 bin/*
 obj/*
-/*.avi
+*.avi
 *.png
 *.jpg
+proctime
