@@ -56,25 +56,30 @@ bool procTime = false;							// Write processing time
 
 int main(int argc, char** argv){
 	// Parse command line arguments and init global variables 
-	if (readArguments(argc, argv) != 0)
+	if (readArguments(argc, argv))
 		return 1;
 
 	// Init facetracker
-	SimpleFacetracker sft = new SimpleFacetracker(2.0);
+	SimpleFacetracker sft;
 	sft.initFaceCascade(faceCascade);
 	// Init optional facetracker components
 	if (!eyesCascade.empty())
-		sft.initEyesCascade(eyesCascade) ? return 1 : continue;
+		if (sft.initEyesCascade(eyesCascade))
+			return 1;
 	if (!noseCascade.empty())
-		sft.initNoseCascade(noseCascade) ? return 2 : continue;
+		if (sft.initNoseCascade(noseCascade))
+			return 2;
 	if (!videoInput.empty()){
 		const String name = videoInput;
-		sft.videoSource(name) ? return 3 : continue;
+		if (sft.videoSource(name))
+			return 3;
 	}else 
-		sft.cameraSource(stoi(cameraInput)) ? return 4 : continue;
+		if (sft.cameraSource(stoi(cameraInput)))
+			return 4;
 	if (!videoOutput.empty()){
 		const String name = videoOutput;
-		sft.writeVideo(name) ? return 5 : continue;
+		if (sft.videoOutput(name))
+			return 5;
 	}
 	if (gray)
 		sft.outputGray();
@@ -82,11 +87,12 @@ int main(int argc, char** argv){
 		sft.writeProcessingTime();
 
 	// Main loop
-	Rect face;
-	while(!sft.finished){
+	float x1, y1, x2, y2;
+	while(!sft.finished()){
 		sft.track();
-		sft.faceLocation(face);
-		cout << "f: " << face << endl;
+		sft.faceLocation(x1, y1, x2, y2);
+		cout << "f: ((" << x1 << ", " << y1 << "), (" <<
+			x2 << ", " << y2 << "))" << endl;
 		sft.drawLocations();
 	}
 
@@ -109,7 +115,7 @@ int readArguments(int argc, char** argv){
 	}
 	if (parser.has("help")){
 		parser.printMessage();
-		return 0;
+		return 1;
 	}
 
 	// Cascade files

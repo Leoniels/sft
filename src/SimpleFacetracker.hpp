@@ -27,36 +27,50 @@
 #include <fstream>
 #include <string>
 
+using namespace cv;
+using namespace std;
 
 /*
  * SimpleFacetracker object to configure, initialize and run the tracker.
  */
 class SimpleFacetracker{
 	public:
+		/* All flags set to false. CLAHE clip limit set to 2.0 */
 		SimpleFacetracker();
 		SimpleFacetracker(float claheClipLimit);
 		~SimpleFacetracker();
 
+		/* Load cascade from .xml file */
 		int initFaceCascade(String faceCascade);
 		int initEyesCascade(String eyesCascade);
 		int initNoseCascade(String NoseCascade);
 
+		/* Initialize video resources */
 		int videoSource(const String name);
 		int cameraSource(int camera);
 		int videoOutput(const String name);
 
+		/* Output video in grayscale format */
 		void outputGray();
+		/* Write the processing time invested in the tracking */
 		void writeProcessingTime();
 
+		/* Return status of video source or user command */
 		bool finished();
 
-		void track();
+		/* Facetracking applies on the video source. Locates the objects
+		 * detected on the Rect attributes */
+		int track();
+		/* Outputs objects detected on the last frame captured */
 		void drawLocations();
 
-		void faceLocation(Rect &face);
-		void noseLocation(Rect &nose);
-		void eyesLocation(Rect &eyes);
+		/* Outputs locations of detected objects */
+		void faceLocation(float &x1, float &y1, float &x2, float &y2);
+		void noseLocation(float &x1, float &y1, float &x2, float &y2);
+		void eyesLocation(float &x11, float &y11, float &x21, float &y21,
+						  float &x12, float &y12, float &x22, float &y22);
 
+		/* Release resources */
 		void release();
 
 	private:
@@ -70,26 +84,27 @@ class SimpleFacetracker{
 		bool searchNose;				// Track nose
 
 		VideoCapture capture;			// Video where the face is tracked
+		int srcFrameWidth;				// Video source frame width in pixels
+		int srcFrameHeight;				// Video source frame height in pixsels
 		VideoWriter outputVideo;		// Video output stream
 		bool writeVideo;				// Write output video
 		bool gray;						// Output gray scale video
 
 		ofstream proctimefile;			// File stream to store process time
 
-		bool done;
-
-		Mat frame;						// Frame to read from video source
+		bool done;						// Status of video source or user
+										// command
+		Mat frame;						// Frame to load from video source
 		size_t nFrames;					// Number of frames read
 
-		double avgFPS;
-		double avgTimePerFr;
-		double processingTime;
+		double processingTime;			// Processing time of detection
 
-		Rect face;
-		Rect eyes[2];
-		Rect nose;
+		Rect face;						// Bounding box face location
+		Rect eyes[2];					// Two bounding boxes of each eye
+		Rect nose;						// BB nose 
 	
 	private:
+		/* Writes the last frame with the objects detected on a video file */
 		void writeFrame();
-}
+};
 
